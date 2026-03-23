@@ -165,6 +165,34 @@ https://your-domain.example/mcp
 
 This applies to Claude-hosted integrations, ChatGPT-style apps, and other remote AI clients where MCP server URLs are supported.
 
+## Railway deployment
+
+This repository can be deployed directly on Railway using the included [railway.json](/C:/Users/LDC/Documents/Genlayer_mcp/railway.json).
+
+The deploy entrypoint is:
+
+```bash
+npm run start:http
+```
+
+Your public MCP endpoint on Railway should be:
+
+```text
+https://your-service-name.up.railway.app/mcp
+```
+
+Working example:
+
+```text
+https://genlayermcp-production.up.railway.app/mcp
+```
+
+Useful checks:
+
+- `https://your-service-name.up.railway.app/`
+- `https://your-service-name.up.railway.app/health`
+- `https://your-service-name.up.railway.app/mcp`
+
 ## Tool endpoints
 
 1. `genlayer_search_docs`
