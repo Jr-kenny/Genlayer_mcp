@@ -1,0 +1,33 @@
+{
+  "name": "genlayer-docs-mcp",
+  "version": "1.0.0",
+  "description": "A lightweight read-only MCP server for searching GenLayer documentation.",
+  "main": "dist/cli.js",
+  "bin": {
+    "genlayer-docs-mcp": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "npm run build && node dist/cli.js --check",
+    "prepare": "npm run build",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [
+    "mcp",
+    "genlayer",
+    "documentation",
+    "claude-code",
+    "codex"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}
