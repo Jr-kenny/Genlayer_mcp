@@ -4,13 +4,15 @@
   "description": "A lightweight read-only MCP server for searching GenLayer documentation.",
   "main": "dist/cli.js",
   "bin": {
-    "genlayer-docs-mcp": "dist/cli.js"
+    "genlayer-docs-mcp": "dist/cli.js",
+    "genlayer-docs-http": "dist/http.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "npm run build && node dist/cli.js --check",
     "prepare": "npm run build",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "start:http": "node dist/http.js"
   },
   "keywords": [
     "mcp",

@@ -1,6 +1,6 @@
 # GenLayer docs MCP
 
-A lightweight, docs-only MCP server that exposes GenLayer documentation as searchable tools and browsable resources for MCP-compatible clients like Claude Code, Cursor, VS Code, Gemini CLI, and Codex.
+A lightweight, docs-only MCP server that exposes GenLayer documentation as searchable tools and browsable resources for MCP-compatible clients like Claude Code, Cursor, VS Code, Gemini CLI, Codex, and remote MCP clients over HTTP.
 
 This project is a read-only docs server. It does not talk to the GenLayer chain, sign transactions, or modify anything.
 
@@ -15,6 +15,11 @@ It parses that bundle into sections and exposes:
 - searchable MCP tools
 - a browsable docs index resource
 - individual section resources
+
+This repository supports two transports:
+
+- `stdio` for local CLI tools such as Claude Code, Codex, Cursor, VS Code, and Gemini CLI
+- Streamable HTTP for deployed remote MCP usage
 
 ## Quickstart for Claude Code
 
@@ -122,6 +127,43 @@ If you want to run the repository locally instead of launching it from GitHub:
    ```
 
 Then substitute that `node .../dist/cli.js` command in any MCP client config if you prefer source-based usage over `npx`.
+
+## Quickstart for remote MCP clients
+
+For remote MCP clients, run the HTTP entrypoint and deploy it as a public web service.
+
+This is not Claude-specific. It is the deployed transport for any client that can connect to remote MCP servers over Streamable HTTP, including chat-style AI apps where that capability is available.
+
+1. Start the HTTP server locally:
+
+   ```bash
+   npm install
+   npm run build
+   npm run start:http
+   ```
+
+   It listens on port `3000` by default. Set the `PORT` environment variable in your shell or deployment platform to change it.
+
+2. The deployed MCP endpoint is:
+
+   ```text
+   https://your-domain.example/mcp
+   ```
+
+3. The server also exposes:
+
+   - `GET /` for a small server info response
+   - `GET /health` for health checks
+
+4. Add the deployed MCP URL in your remote MCP client as an HTTP MCP server.
+
+Use:
+
+```text
+https://your-domain.example/mcp
+```
+
+This applies to Claude-hosted integrations, ChatGPT-style apps, and other remote AI clients where MCP server URLs are supported.
 
 ## Tool endpoints
 

@@ -13,14 +13,7 @@ import {
 
 const service = new GenlayerDocsService();
 
-export async function startServer(): Promise<void> {
-  if (process.argv.includes("--check")) {
-    const snapshot = await service.getSnapshot();
-    console.error(`Loaded ${snapshot.sections.length} GenLayer docs sections from ${snapshot.source}.`);
-    console.error(`Example section: ${snapshot.sections[0]?.title ?? "none"}`);
-    return;
-  }
-
+export function createDocsServer(): McpServer {
   const server = new McpServer(
     {
       name: "genlayer-docs-mcp",
@@ -34,7 +27,11 @@ export async function startServer(): Promise<void> {
       }
     }
   );
+  registerDocsToolsAndResources(server);
+  return server;
+}
 
+function registerDocsToolsAndResources(server: McpServer): void {
   server.registerTool(
     "genlayer_search_docs",
     {
@@ -348,7 +345,17 @@ export async function startServer(): Promise<void> {
       };
     }
   );
+}
 
+export async function startServer(): Promise<void> {
+  if (process.argv.includes("--check")) {
+    const snapshot = await service.getSnapshot();
+    console.error(`Loaded ${snapshot.sections.length} GenLayer docs sections from ${snapshot.source}.`);
+    console.error(`Example section: ${snapshot.sections[0]?.title ?? "none"}`);
+    return;
+  }
+
+  const server = createDocsServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
