@@ -36,6 +36,13 @@ interface SearchResult {
   snippet: string;
 }
 
+export interface TopicSummary {
+  count: number;
+  key: string;
+  label: string;
+  sampleSections: DocSection[];
+}
+
 export class GenlayerDocsService {
   private readonly cacheFile: string;
   private readonly docsSource: string;
@@ -103,9 +110,177 @@ export class GenlayerDocsService {
     return this.searchSnapshot(snapshot, query, 1)[0]?.section;
   }
 
+  async getSectionBySlug(input: string): Promise<DocSection | undefined> {
+    const snapshot = await this.getSnapshot();
+    const slug = cleanSlug(input);
+
+    if (!slug) {
+      return undefined;
+    }
+
+    return snapshot.sections.find((section) => {
+      return section.slug === slug || section.path === slug || section.path === `${slug}.mdx`;
+    });
+  }
+
   async search(query: string, limit = 5): Promise<SearchResult[]> {
     const snapshot = await this.getSnapshot();
     return this.searchSnapshot(snapshot, query, limit);
+  }
+
+  async searchExamples(query: string, limit = 5): Promise<SearchResult[]> {
+    const snapshot = await this.getSnapshot();
+    const normalizedQuery = normalize(query);
+    const tokens = tokenize(normalizedQuery);
+
+    return snapshot.sections
+      .filter((section) => sectionContainsExamples(section))
+      .map((section) => {
+        const title = normalize(section.title);
+        const pathValue = normalize(section.path);
+        const slug = normalize(section.slug);
+        const body = normalize(section.body);
+
+        let score = 0;
+        if (title.includes(normalizedQuery)) {
+          score += 30;
+        }
+        if (slug.includes(normalizedQuery) || pathValue.includes(normalizedQuery)) {
+          score += 20;
+        }
+        if (body.includes(normalizedQuery)) {
+          score += 12;
+        }
+
+        for (const token of tokens) {
+          if (title.includes(token)) {
+            score += 8;
+          }
+          if (slug.includes(token) || pathValue.includes(token)) {
+            score += 5;
+          }
+          score += Math.min(countOccurrences(body, token), 4);
+        }
+
+        score += exampleSignals(section.body);
+
+        if (score === 0) {
+          return undefined;
+        }
+
+        return {
+          score,
+          section,
+          snippet: makeSnippet(section, tokens, normalizedQuery)
+        };
+      })
+      .filter((result): result is SearchResult => Boolean(result))
+      .sort((left, right) => {
+        if (right.score !== left.score) {
+          return right.score - left.score;
+        }
+
+        return left.section.title.localeCompare(right.section.title);
+      })
+      .slice(0, limit);
+  }
+
+  async getRelatedDocs(input: string, limit = 5): Promise<{ base: DocSection; results: SearchResult[] } | undefined> {
+    const snapshot = await this.getSnapshot();
+    const base = await this.getSectionBySlug(input) ?? await this.readSection(input);
+
+    if (!base) {
+      return undefined;
+    }
+
+    const baseTokens = tokenize(normalize(`${base.title} ${base.slug}`));
+    const baseSegments = base.slug.split("/").filter(Boolean);
+    const baseParent = baseSegments.slice(0, -1).join("/");
+
+    const results = snapshot.sections
+      .filter((section) => section.slug !== base.slug)
+      .map((section) => {
+        let score = 0;
+        const sectionTokens = tokenize(normalize(`${section.title} ${section.slug}`));
+        const sectionSegments = section.slug.split("/").filter(Boolean);
+        const sectionParent = sectionSegments.slice(0, -1).join("/");
+
+        if (baseParent && sectionParent === baseParent) {
+          score += 35;
+        }
+
+        const commonPrefixLength = countCommonPrefix(baseSegments, sectionSegments);
+        score += commonPrefixLength * 10;
+
+        for (const token of baseTokens) {
+          if (sectionTokens.includes(token)) {
+            score += 5;
+          }
+        }
+
+        if (base.path.split("/")[0] === section.path.split("/")[0]) {
+          score += 8;
+        }
+
+        if (score === 0) {
+          return undefined;
+        }
+
+        return {
+          score,
+          section,
+          snippet: section.summary
+        };
+      })
+      .filter((result): result is SearchResult => Boolean(result))
+      .sort((left, right) => {
+        if (right.score !== left.score) {
+          return right.score - left.score;
+        }
+
+        return left.section.title.localeCompare(right.section.title);
+      })
+      .slice(0, limit);
+
+    return {
+      base,
+      results
+    };
+  }
+
+  async listTopics(limit = 20): Promise<TopicSummary[]> {
+    const snapshot = await this.getSnapshot();
+    const topics = new Map<string, TopicSummary>();
+
+    for (const section of snapshot.sections) {
+      const key = section.slug.split("/").filter(Boolean)[0] ?? "overview";
+      const existing = topics.get(key);
+
+      if (existing) {
+        existing.count += 1;
+        if (existing.sampleSections.length < 3) {
+          existing.sampleSections.push(section);
+        }
+        continue;
+      }
+
+      topics.set(key, {
+        count: 1,
+        key,
+        label: topicLabel(key),
+        sampleSections: [section]
+      });
+    }
+
+    return Array.from(topics.values())
+      .sort((left, right) => {
+        if (right.count !== left.count) {
+          return right.count - left.count;
+        }
+
+        return left.label.localeCompare(right.label);
+      })
+      .slice(0, limit);
   }
 
   private async loadSnapshot(): Promise<DocsSnapshot> {
@@ -226,6 +401,44 @@ export function formatSection(section: DocSection, maxChars = 6000): string {
   const budget = Math.max(maxChars - header.length, 400);
   const body = section.body.length > budget ? `${section.body.slice(0, budget).trimEnd()}\n\n[truncated]` : section.body;
   return `${header}${body}`.trimEnd();
+}
+
+export function formatRelatedDocs(base: DocSection, results: SearchResult[]): string {
+  if (results.length === 0) {
+    return `No related GenLayer documentation was found for "${base.title}".`;
+  }
+
+  const lines = [
+    `Related GenLayer documentation for "${base.title}":`,
+    `Base: ${base.path}`,
+    ""
+  ];
+
+  results.forEach((result, index) => {
+    lines.push(`${index + 1}. ${result.section.title}`);
+    lines.push(`   Path: ${result.section.path}`);
+    lines.push(`   URI: ${result.section.uri}`);
+    lines.push(`   URL: ${result.section.publicUrl}`);
+    lines.push(`   Why: ${result.snippet}`);
+  });
+
+  return lines.join("\n");
+}
+
+export function formatTopics(topics: TopicSummary[]): string {
+  if (topics.length === 0) {
+    return "No GenLayer documentation topics are currently available.";
+  }
+
+  const lines = ["GenLayer documentation topics:", ""];
+
+  topics.forEach((topic, index) => {
+    lines.push(`${index + 1}. ${topic.label} (${topic.count} sections)`);
+    lines.push(`   Key: ${topic.key}`);
+    lines.push(`   Examples: ${topic.sampleSections.map((section) => section.title).join(" | ")}`);
+  });
+
+  return lines.join("\n");
 }
 
 export function buildIndexDocument(snapshot: DocsSnapshot): string {
@@ -366,6 +579,28 @@ function normalize(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9/]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function cleanSlug(input: string): string {
+  const value = input.trim();
+  if (!value) {
+    return "";
+  }
+
+  try {
+    if (value.startsWith("http://") || value.startsWith("https://")) {
+      const url = new URL(value);
+      return url.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+    }
+  } catch {
+    // Keep falling through to plain-text cleanup.
+  }
+
+  return decodeURIComponent(value)
+    .replace(/^genlayer:\/\/docs\/section\//, "")
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "")
+    .replace(/\.mdx$/i, "");
+}
+
 function tokenize(value: string): string[] {
   return Array.from(new Set(value.split(/\s+/).filter((part) => part.length >= 2)));
 }
@@ -387,6 +622,48 @@ function countOccurrences(haystack: string, needle: string): number {
   }
 
   return count;
+}
+
+function sectionContainsExamples(section: DocSection): boolean {
+  return exampleSignals(section.body) > 0;
+}
+
+function exampleSignals(body: string): number {
+  let score = 0;
+
+  if (body.includes("```")) {
+    score += 10;
+  }
+  if (/\b(npm|pnpm|yarn|npx|pip|genlayer|curl)\b/i.test(body)) {
+    score += 6;
+  }
+  if (/\b(json-rpc|rpc|api|sdk|cli|example|deploy|install|command)\b/i.test(body)) {
+    score += 4;
+  }
+
+  return score;
+}
+
+function countCommonPrefix(left: string[], right: string[]): number {
+  let count = 0;
+  const max = Math.min(left.length, right.length);
+
+  while (count < max && left[count] === right[count]) {
+    count += 1;
+  }
+
+  return count;
+}
+
+function topicLabel(key: string): string {
+  if (key === "index") {
+    return "Overview";
+  }
+
+  return key
+    .split("-")
+    .map((part) => part ? `${part.charAt(0).toUpperCase()}${part.slice(1)}` : part)
+    .join(" ");
 }
 
 function toPublicDocUrl(slug: string): string {

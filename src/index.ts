@@ -5,8 +5,10 @@ import {
   GenlayerDocsService,
   buildIndexDocument,
   buildResourceList,
+  formatRelatedDocs,
   formatSearchResults,
-  formatSection
+  formatSection,
+  formatTopics
 } from "./genlayerDocs.js";
 
 const service = new GenlayerDocsService();
@@ -101,6 +103,45 @@ export async function startServer(): Promise<void> {
   );
 
   server.registerTool(
+    "genlayer_get_doc_by_slug",
+    {
+      title: "Get GenLayer Doc By Slug",
+      description: "Read a GenLayer documentation section by exact slug, path, resource URI, or docs URL.",
+      inputSchema: {
+        slug: z.string().min(1).describe("Exact section slug or path, for example understand-genlayer-protocol/core-concepts/genvm."),
+        maxChars: z.number().int().min(500).max(40000).default(6000).describe("Maximum characters to return.")
+      },
+      annotations: {
+        title: "Get GenLayer Doc By Slug",
+        readOnlyHint: true,
+        idempotentHint: true
+      }
+    },
+    async ({ slug, maxChars }) => {
+      const match = await service.getSectionBySlug(slug);
+      if (!match) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No exact GenLayer documentation section matched slug "${slug}".`
+            }
+          ]
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: formatSection(match, maxChars)
+          }
+        ]
+      };
+    }
+  );
+
+  server.registerTool(
     "genlayer_list_sections",
     {
       title: "List GenLayer Doc Sections",
@@ -142,6 +183,100 @@ export async function startServer(): Promise<void> {
           {
             type: "text",
             text
+          }
+        ]
+      };
+    }
+  );
+
+  server.registerTool(
+    "genlayer_search_examples",
+    {
+      title: "Search GenLayer Examples",
+      description: "Search GenLayer documentation sections that contain code blocks, commands, SDK usage, or configuration examples.",
+      inputSchema: {
+        query: z.string().min(1).describe("Search query for example-heavy GenLayer docs."),
+        limit: z.number().int().min(1).max(10).default(5).describe("Maximum number of results to return.")
+      },
+      annotations: {
+        title: "Search GenLayer Examples",
+        readOnlyHint: true,
+        idempotentHint: true
+      }
+    },
+    async ({ query, limit }) => {
+      const results = await service.searchExamples(query, limit);
+      return {
+        content: [
+          {
+            type: "text",
+            text: formatSearchResults(query, results)
+          }
+        ]
+      };
+    }
+  );
+
+  server.registerTool(
+    "genlayer_get_related_docs",
+    {
+      title: "Get Related GenLayer Docs",
+      description: "Find GenLayer documentation sections related to a given slug, path, title, URL, or fuzzy query.",
+      inputSchema: {
+        section: z.string().min(1).describe("Base section slug, path, title, URL, or query."),
+        limit: z.number().int().min(1).max(10).default(5).describe("Maximum number of related sections to return.")
+      },
+      annotations: {
+        title: "Get Related GenLayer Docs",
+        readOnlyHint: true,
+        idempotentHint: true
+      }
+    },
+    async ({ section, limit }) => {
+      const related = await service.getRelatedDocs(section, limit);
+      if (!related) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No GenLayer documentation section matched "${section}" for related-doc lookup.`
+            }
+          ]
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: formatRelatedDocs(related.base, related.results)
+          }
+        ]
+      };
+    }
+  );
+
+  server.registerTool(
+    "genlayer_list_topics",
+    {
+      title: "List GenLayer Topics",
+      description: "List top-level GenLayer documentation topics with section counts and example pages.",
+      inputSchema: {
+        limit: z.number().int().min(1).max(50).default(20).describe("Maximum number of topics to return.")
+      },
+      annotations: {
+        title: "List GenLayer Topics",
+        readOnlyHint: true,
+        idempotentHint: true
+      }
+    },
+    async ({ limit }) => {
+      const topics = await service.listTopics(limit);
+      return {
+        content: [
+          {
+            type: "text",
+            text: formatTopics(topics)
           }
         ]
       };

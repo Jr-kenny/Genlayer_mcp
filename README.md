@@ -16,38 +16,10 @@ It parses that bundle into sections and exposes:
 - a browsable docs index resource
 - individual section resources
 
-## Quickstart from source
-
-If you are using this repository directly:
-
-1. Clone the repo:
-
-   ```bash
-   git clone <your-repo-url>
-   cd genlayer-docs-mcp
-   ```
-
-2. Install dependencies and build:
-
-   ```bash
-   npm install
-   npm run build
-   ```
-
-3. The MCP server entrypoint will be:
-
-   ```bash
-   node /absolute/path/to/genlayer-docs-mcp/dist/cli.js
-   ```
-
-Use that command in your MCP client configuration.
-
 ## Quickstart for Claude Code
 
-If you are using the repo from source:
-
 ```bash
-claude mcp add --transport stdio genlayer-docs -- node /absolute/path/to/genlayer-docs-mcp/dist/cli.js
+claude mcp add --transport stdio genlayer-docs -- npx -y github:Jr-kenny/Genlayer_mcp
 ```
 
 Then start Claude Code:
@@ -72,8 +44,8 @@ Add this to `.cursor/mcp.json`:
 {
   "mcpServers": {
     "genlayer-docs": {
-      "command": "node",
-      "args": ["/absolute/path/to/genlayer-docs-mcp/dist/cli.js"]
+      "command": "npx",
+      "args": ["-y", "github:Jr-kenny/Genlayer_mcp"]
     }
   }
 }
@@ -91,8 +63,8 @@ Add this to `.vscode/mcp.json`:
   "servers": {
     "genlayer-docs": {
       "type": "stdio",
-      "command": "node",
-      "args": ["/absolute/path/to/genlayer-docs-mcp/dist/cli.js"]
+      "command": "npx",
+      "args": ["-y", "github:Jr-kenny/Genlayer_mcp"]
     }
   },
   "inputs": []
@@ -104,7 +76,7 @@ Add this to `.vscode/mcp.json`:
 Add the MCP server globally:
 
 ```bash
-gemini mcp add --scope user genlayer-docs node /absolute/path/to/genlayer-docs-mcp/dist/cli.js
+gemini mcp add --scope user genlayer-docs npx -y github:Jr-kenny/Genlayer_mcp
 ```
 
 Confirm it is registered:
@@ -119,29 +91,37 @@ Add this to your Codex MCP config:
 
 ```toml
 [mcp_servers.genlayer-docs]
-command = "node"
-args = ["/absolute/path/to/genlayer-docs-mcp/dist/cli.js"]
+command = "npx"
+args = ["-y", "github:Jr-kenny/Genlayer_mcp"]
 ```
 
 Then restart Codex so it reloads the MCP config.
 
-## Future published usage
+## Quickstart from source
 
-If you publish this project to GitHub or npm, you can switch the client configs to a one-line launcher.
+If you want to run the repository locally instead of launching it from GitHub:
 
-Example GitHub-based launcher:
+1. Clone the repo:
 
-```bash
-npx -y github:your-org/genlayer-docs-mcp
-```
+   ```bash
+   git clone https://github.com/Jr-kenny/Genlayer_mcp
+   cd Genlayer_mcp
+   ```
 
-Example Claude Code command after publishing:
+2. Install dependencies and build:
 
-```bash
-claude mcp add --transport stdio genlayer-docs -- npx -y github:your-org/genlayer-docs-mcp
-```
+   ```bash
+   npm install
+   npm run build
+   ```
 
-Replace `your-org/genlayer-docs-mcp` with the real published repository.
+3. Run the local entrypoint:
+
+   ```bash
+   node /absolute/path/to/Genlayer_mcp/dist/cli.js
+   ```
+
+Then substitute that `node .../dist/cli.js` command in any MCP client config if you prefer source-based usage over `npx`.
 
 ## Tool endpoints
 
@@ -151,7 +131,19 @@ Replace `your-org/genlayer-docs-mcp` with the real published repository.
 2. `genlayer_read_doc`
    Reads a section by slug, path, title, or fuzzy query.
 
-3. `genlayer_list_sections`
+3. `genlayer_get_doc_by_slug`
+   Reads a section by exact slug, path, docs URL, or resource URI.
+
+4. `genlayer_search_examples`
+   Searches example-heavy sections that contain commands, code blocks, SDK snippets, or config examples.
+
+5. `genlayer_get_related_docs`
+   Finds related documentation pages based on section path, title, and neighborhood in the docs tree.
+
+6. `genlayer_list_topics`
+   Lists top-level GenLayer documentation topics with counts and example pages.
+
+7. `genlayer_list_sections`
    Lists available parsed documentation sections.
 
 ## Resources
