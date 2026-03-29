@@ -92,7 +92,19 @@ gemini mcp list
 
 ## Quickstart for Codex
 
-Add this to your Codex MCP config:
+Add the MCP server with the Codex CLI:
+
+```bash
+codex mcp add genlayer-docs -- npx -y github:Jr-kenny/Genlayer_mcp
+```
+
+Confirm it is registered:
+
+```bash
+codex mcp list
+```
+
+Alternatively, add this to your Codex MCP config:
 
 ```toml
 [mcp_servers.genlayer-docs]
@@ -100,7 +112,7 @@ command = "npx"
 args = ["-y", "github:Jr-kenny/Genlayer_mcp"]
 ```
 
-Then restart Codex so it reloads the MCP config.
+Then restart Codex if needed so it reloads the MCP config.
 
 ## Quickstart from source
 
