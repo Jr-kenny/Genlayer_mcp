@@ -59,11 +59,13 @@ export class GenlayerDocsService {
   }
 
   async getSnapshot(forceRefresh = false): Promise<DocsSnapshot> {
-    if (this.snapshot && !forceRefresh) {
+    const snapshotIsFresh = this.snapshot ? isFresh(Date.parse(this.snapshot.fetchedAt), this.refreshHours) : false;
+
+    if (this.snapshot && !forceRefresh && snapshotIsFresh) {
       return this.snapshot;
     }
 
-    if (!this.loadPromise || forceRefresh) {
+    if (!this.loadPromise || forceRefresh || !snapshotIsFresh) {
       const load = this.loadSnapshot();
       this.loadPromise = load.finally(() => {
         if (this.loadPromise === load) {

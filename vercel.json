@@ -1,0 +1,31 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "buildCommand": "npm run build",
+  "builds": [
+    {
+      "src": "api/*.mjs",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "dist/**",
+          ".cache/**"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "^/$",
+      "dest": "/api/index.mjs"
+    },
+    {
+      "src": "^/mcp$",
+      "dest": "/api/mcp.mjs"
+    },
+    {
+      "src": "^/health$",
+      "dest": "/api/health.mjs"
+    }
+  ]
+}

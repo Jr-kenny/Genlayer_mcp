@@ -17,7 +17,7 @@ export function createDocsServer(): McpServer {
   const server = new McpServer(
     {
       name: "genlayer-docs-mcp",
-      version: "1.0.0",
+      version: "1.0.1",
       websiteUrl: "https://docs.genlayer.com/",
       description: "Read-only MCP server for GenLayer documentation search and retrieval."
     },
@@ -32,6 +32,35 @@ export function createDocsServer(): McpServer {
 }
 
 function registerDocsToolsAndResources(server: McpServer): void {
+  server.registerTool(
+    "genlayer_refresh_docs",
+    {
+      title: "Refresh GenLayer Docs",
+      description: "Force-refresh the cached GenLayer documentation bundle from the configured source.",
+      inputSchema: {},
+      annotations: {
+        title: "Refresh GenLayer Docs",
+        idempotentHint: true
+      }
+    },
+    async () => {
+      const snapshot = await service.getSnapshot(true);
+      return {
+        content: [
+          {
+            type: "text",
+            text: [
+              "GenLayer documentation refreshed.",
+              `Source: ${snapshot.source}`,
+              `Fetched at: ${snapshot.fetchedAt}`,
+              `Sections: ${snapshot.sections.length}`
+            ].join("\n")
+          }
+        ]
+      };
+    }
+  );
+
   server.registerTool(
     "genlayer_search_docs",
     {
