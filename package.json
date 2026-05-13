@@ -1,7 +1,7 @@
 {
   "name": "genlayer-docs-mcp",
-  "version": "1.0.1",
-  "description": "A lightweight read-only MCP server for searching GenLayer documentation.",
+  "version": "2.0.0",
+  "description": "An MCP server for GenLayer documentation search and live protocol RPC inspection.",
   "main": "dist/cli.js",
   "bin": {
     "genlayer-docs-mcp": "dist/cli.js",
@@ -18,6 +18,8 @@
     "mcp",
     "genlayer",
     "documentation",
+    "json-rpc",
+    "contracts",
     "claude-code",
     "codex"
   ],

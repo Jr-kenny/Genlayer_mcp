@@ -1,8 +1,8 @@
-# GenLayer docs MCP
+# GenLayer MCP
 
-A lightweight, docs-only MCP server that exposes GenLayer documentation as searchable tools and browsable resources for MCP-compatible clients like Claude Code, Cursor, VS Code, Gemini CLI, Codex, and remote MCP clients over HTTP.
+An MCP server that combines searchable GenLayer documentation with live GenLayer protocol RPC inspection for MCP-compatible clients like Claude Code, Cursor, VS Code, Gemini CLI, Codex, and remote MCP clients over HTTP.
 
-This project is a read-only docs server. It does not talk to the GenLayer chain, sign transactions, or modify anything.
+This project still does not sign transactions or manage private keys. It now supports live node inspection and contract interaction through GenLayer JSON-RPC methods such as `gen_call`, `gen_getContractState`, `gen_getContractCode`, `gen_getContractSchema`, `gen_getTransactionStatus`, and `gen_getTransactionReceipt`.
 
 ## What this server does
 
@@ -15,11 +15,26 @@ It parses that bundle into sections and exposes:
 - searchable MCP tools
 - a browsable docs index resource
 - individual section resources
+- live GenLayer JSON-RPC tools for contract and transaction inspection
+- a browsable RPC configuration resource
 
 This repository supports two transports:
 
 - `stdio` for local CLI tools such as Claude Code, Codex, Cursor, VS Code, and Gemini CLI
 - Streamable HTTP for deployed remote MCP usage
+
+## RPC configuration
+
+Live protocol tools use the configured GenLayer RPC endpoint.
+
+- `GENLAYER_RPC_URL`: JSON-RPC endpoint to use
+- `GENLAYER_RPC_TIMEOUT_MS`: timeout for live RPC requests
+
+If `GENLAYER_RPC_URL` is not set, the server defaults to:
+
+```text
+https://studio.genlayer.com/api
+```
 
 ## Quickstart for Claude Code
 
@@ -205,36 +220,196 @@ Notes:
 
 ## Tool endpoints
 
-1. `genlayer_search_docs`
+High-level orchestration tools now use a canonical machine-readable response shape with:
+- `kind`
+- `summary`
+- `current_state`
+- `blockers`
+- `next_actions`
+- `fallbacks`
+- `data`
+
+### Live protocol tools
+
+1. `genlayer_list_networks`
+   Lists documented GenLayer network presets, chain IDs, and RPC URLs.
+
+2. `genlayer_start_workflow_session`
+   Creates a persisted workflow session from a generated contract workflow plan.
+
+3. `genlayer_list_workflow_sessions`
+   Lists persisted workflow sessions ordered by most recently updated.
+
+4. `genlayer_get_workflow_session`
+   Reads a persisted workflow session by id.
+
+5. `genlayer_update_workflow_step`
+   Marks a workflow session step as completed or pending.
+
+6. `genlayer_autopilot_brief`
+   Generates a single operator-grade brief with endpoint capabilities, contract context, workflow plans, handoff steps, and relevant docs.
+
+7. `genlayer_load_contract_artifact`
+   Loads a local contract artifact or bytecode file and returns base64 plus file metadata.
+
+8. `genlayer_probe_endpoint_capabilities`
+   Probes which HTTP and RPC surfaces are actually exposed on the configured GenLayer deployment.
+
+9. `genlayer_generate_agent_handoff`
+   Generates an explicit ordered handoff bundle so weaker agents know exactly which GenLayer MCP tools to call next.
+
+10. `genlayer_get_contract_interface`
+   Normalizes a contract schema into constructor, view methods, and write methods.
+
+11. `genlayer_plan_contract_action`
+   Builds a schema-validated execution plan for deploy, read, or write actions.
+
+12. `genlayer_plan_contract_workflow`
+   Builds a multi-phase contract workflow covering deploy, wait, snapshot, interaction, and diagnosis.
+
+13. `genlayer_run_transaction_report`
+   Orchestrates waiting, inspection, status explanation, optional trace lookup, and optional contract snapshot into one report.
+
+14. `genlayer_run_contract_report`
+   Orchestrates network context, contract snapshot, interface, workflow, and default plans into one report.
+
+15. `genlayer_generate_typescript_workflow`
+   Generates GenLayerJS deploy/read/write snippets from a contract schema or deployed contract.
+
+16. `genlayer_generate_contract_playbook`
+   Generates a schema-aware deployment and interaction playbook for a contract.
+
+17. `genlayer_node_health`
+   Calls the configured GenLayer node HTTP `GET /health` endpoint.
+
+18. `genlayer_network_status`
+   Returns a combined live snapshot of node health, chain id, block height, sync status, and optional debug ping status.
+
+19. `genlayer_balance`
+   Calls the configured GenLayer HTTP `GET /balance` endpoint for the node operator.
+
+20. `genlayer_eth_get_balance`
+   Calls `eth_getBalance` through the configured GenLayer RPC endpoint.
+
+21. `genlayer_raw_rpc`
+   Calls `gen_*`, `eth_*`, `zks_*`, or `zksync_*` methods directly against the configured endpoint.
+
+22. `genlayer_trace_transaction`
+   Calls `gen_dbg_traceTransaction` when the target node exposes debug methods.
+
+23. `genlayer_metrics`
+   Fetches Prometheus-style metrics from the configured HTTP `GET /metrics` endpoint.
+
+24. `genlayer_submit_raw_transaction`
+   Submits a signed raw transaction through `eth_sendRawTransaction`.
+
+25. `genlayer_inspect_transaction`
+   Combines `gen_getTransactionStatus`, `gen_getTransactionReceipt`, and `eth_getTransactionByHash` into one response.
+
+26. `genlayer_wait_for_transaction`
+   Polls transaction status until `accepted` or `finalized`.
+
+27. `genlayer_explain_transaction_status`
+   Interprets transaction status into finality phase, appealability, and next-step guidance.
+
+28. `genlayer_call_contract`
+   Executes `gen_call` for read, write-simulation, or deploy-simulation requests.
+
+29. `genlayer_get_contract_schema`
+   Calls `gen_getContractSchema` for base64-encoded contract code.
+
+30. `genlayer_get_contract_state`
+   Calls `gen_getContractState` for a deployed contract.
+
+31. `genlayer_get_contract_code`
+   Calls `gen_getContractCode` for a deployed contract.
+
+32. `genlayer_get_contract_snapshot`
+   Fetches state, deployed code, and derived schema in one call.
+
+33. `genlayer_get_transaction_status`
+   Calls `gen_getTransactionStatus` for lightweight transaction polling.
+
+34. `genlayer_get_transaction_receipt`
+   Calls `gen_getTransactionReceipt` for full processed transaction data.
+
+35. `genlayer_syncing`
+    Calls `gen_syncing` on the configured endpoint.
+
+### Documentation tools
+
+36. `genlayer_search_docs`
    Searches the documentation bundle and returns ranked matches with snippets.
 
-2. `genlayer_refresh_docs`
+37. `genlayer_refresh_docs`
    Force-refreshes the cached GenLayer documentation bundle from the configured source. Use this after the GenLayer team ships new docs, for example new Studio GEN, payable contract, Faucet, Tip Jar, or MetaMask updates.
 
-3. `genlayer_read_doc`
+38. `genlayer_read_doc`
    Reads a section by slug, path, title, or fuzzy query.
 
-4. `genlayer_get_doc_by_slug`
+39. `genlayer_get_doc_by_slug`
    Reads a section by exact slug, path, docs URL, or resource URI.
 
-5. `genlayer_search_examples`
+40. `genlayer_search_examples`
    Searches example-heavy sections that contain commands, code blocks, SDK snippets, or config examples.
 
-6. `genlayer_get_related_docs`
+41. `genlayer_get_related_docs`
    Finds related documentation pages based on section path, title, and neighborhood in the docs tree.
 
-7. `genlayer_list_topics`
+42. `genlayer_list_topics`
    Lists top-level GenLayer documentation topics with counts and example pages.
 
-8. `genlayer_list_sections`
+43. `genlayer_list_sections`
    Lists available parsed documentation sections.
 
 ## Resources
 
-1. `genlayer://docs/index`
+1. `genlayer://protocol/networks`
+   Documented GenLayer network presets, RPC URLs, and chain IDs.
+
+2. `genlayer://workflow/sessions`
+   List of persisted workflow sessions.
+
+3. `genlayer://workflow/session/{id}`
+   Persisted workflow session with step completion state.
+
+4. `genlayer://workflow/autopilot`
+   Single operator-grade brief for the configured endpoint and current contract context.
+
+5. `genlayer://protocol/rpc-config`
+   JSON document showing the configured RPC endpoint, timeout, and supported helper methods.
+
+6. `genlayer://protocol/capabilities`
+   Probed endpoint capabilities showing which HTTP and RPC surfaces are actually exposed.
+
+7. `genlayer://protocol/transaction/{txId}`
+   Combined transaction inspection resource for a specific transaction hash.
+
+8. `genlayer://protocol/transaction/{txId}/report`
+   Composed transaction report with status interpretation and optional trace data when exposed.
+
+9. `genlayer://protocol/contract/{address}/state`
+   Current accepted-state snapshot for a specific deployed contract.
+
+10. `genlayer://protocol/contract/{address}/snapshot`
+   Combined state, code, and schema snapshot for a specific deployed contract.
+
+11. `genlayer://protocol/contract/{address}/playbook`
+   Schema-aware deployment and interaction playbook for a deployed contract.
+
+12. `genlayer://protocol/contract/{address}/report`
+   Composed contract report with network context, snapshot, interface, workflow, and default plans.
+
+13. `genlayer://protocol/contract/{address}/plans`
+   Default workflow plus default read/write action plans for a deployed contract.
+
+14. `genlayer://protocol/contract/{address}/method/{method}/plan/{action}`
+   Default schema-validated plan for a specific read or write method.
+
+15. `genlayer://docs/index`
    JSON index of all parsed sections.
 
-2. `genlayer://docs/section/{slug}`
+16. `genlayer://docs/section/{slug}`
    Individual documentation sections as read-only resources.
 
 ## Project structure
@@ -244,6 +419,10 @@ Notes:
 | `src/index.ts` | The server logic: loads docs, parses sections, registers tools and resources |
 | `src/cli.ts` | Entry point that starts the stdio MCP server |
 | `src/genlayerDocs.ts` | Docs loading, caching, parsing, search, and formatting helpers |
+| `src/genlayerRpc.ts` | GenLayer RPC, HTTP ops endpoints, network presets, and transaction helpers |
+| `src/genlayerContractToolkit.ts` | Schema normalization and GenLayerJS workflow/playbook generation |
+| `src/genlayerArtifacts.ts` | Local artifact loading and hashing for artifact-driven GenLayer workflows |
+| `src/genlayerWorkflowSessions.ts` | Persisted workflow session state and session formatting helpers |
 | `api/` | Vercel API functions for the remote MCP, health, and root endpoints |
 | `dist/` | Compiled JavaScript output generated by `npm run build` |
 | `package.json` | Dependencies, scripts, package metadata, and CLI registration |

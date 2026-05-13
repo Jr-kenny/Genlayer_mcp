@@ -18,7 +18,7 @@ export async function startHttpServer(): Promise<void> {
 
       if (requestUrl.pathname === "/") {
         writeJson(res, 200, {
-          name: "genlayer-docs-mcp",
+          name: "genlayer-mcp",
           transport: "streamable-http",
           endpoint: "/mcp",
           status: "ok"
@@ -77,7 +77,7 @@ export async function startHttpServer(): Promise<void> {
     server.once("error", reject);
   });
 
-  console.error(`GenLayer docs MCP HTTP server listening on port ${port}`);
+  console.error(`GenLayer MCP HTTP server listening on port ${port}`);
 
   const shutdown = () => {
     server.close(() => {
