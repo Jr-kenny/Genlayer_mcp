@@ -8,7 +8,7 @@
     "genlayer-docs-http": "dist/http.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js dist/http.js",
     "check": "npm run build && node dist/cli.js --check",
     "prepare": "npm run build",
     "start": "node dist/cli.js",
