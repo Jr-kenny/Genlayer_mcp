@@ -77,7 +77,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath, goal, notes }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath);
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+        return unsupportedContractRpcEnvelope("workflow_session_start", error);
+      });
+      if (isCanonicalEnvelope(schema)) {
+        return textEnvelope(schema);
+      }
       const summary = normalizeContractSchema(schema);
       const preset = inferCurrentNetworkPreset();
       const workflow = buildWorkflowPlan({
@@ -393,7 +398,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath, goal }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath);
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+        return unsupportedContractRpcEnvelope("agent_handoff", error);
+      });
+      if (isCanonicalEnvelope(schema)) {
+        return textEnvelope(schema);
+      }
       const summary = normalizeContractSchema(schema);
       const preset = inferCurrentNetworkPreset();
       const handoff = buildAgentHandoff({
@@ -449,7 +459,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath);
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+        return unsupportedContractRpcEnvelope("contract_workflow_plan", error);
+      });
+      if (isCanonicalEnvelope(schema)) {
+        return textEnvelope(schema);
+      }
       const summary = normalizeContractSchema(schema);
       const preset = inferCurrentNetworkPreset();
       const plan = buildWorkflowPlan({
@@ -507,7 +522,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ action, address, code, contractPath, methodName, args, from, value, statusTarget }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath);
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+        return unsupportedContractRpcEnvelope("contract_action_plan", error);
+      });
+      if (isCanonicalEnvelope(schema)) {
+        return textEnvelope(schema);
+      }
       const summary = normalizeContractSchema(schema);
       const preset = inferCurrentNetworkPreset();
       const plan = buildExecutionPlan({
@@ -566,7 +586,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code);
+      const schema = await resolveContractSchemaFromAnySource(address, code).catch((error) => {
+        return unsupportedContractRpcEnvelope("contract_interface", error);
+      });
+      if (isCanonicalEnvelope(schema)) {
+        return textEnvelope(schema);
+      }
       const summary = normalizeContractSchema(schema);
       return {
         content: [
@@ -596,7 +621,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath);
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+        return unsupportedContractRpcEnvelope("typescript_workflow", error);
+      });
+      if (isCanonicalEnvelope(schema)) {
+        return textEnvelope(schema);
+      }
       const summary = normalizeContractSchema(schema);
       const networkPreset = inferCurrentNetworkPreset();
       const snippet = buildTypeScriptInteractionGuide({
@@ -635,7 +665,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath);
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+        return unsupportedContractRpcEnvelope("contract_playbook", error);
+      });
+      if (isCanonicalEnvelope(schema)) {
+        return textEnvelope(schema);
+      }
       const summary = normalizeContractSchema(schema);
       const preset = inferCurrentNetworkPreset();
       const text = buildContractPlaybook({
@@ -1186,7 +1221,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ code }) => {
-      const result = await rpcService.getContractSchema(code);
+      const result = await rpcService.getContractSchema(code).catch((error) => {
+        return unsupportedContractRpcEnvelope("get_contract_schema", error);
+      });
+      if (isCanonicalEnvelope(result)) {
+        return textEnvelope(result);
+      }
       return {
         content: [
           {
@@ -1219,7 +1259,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
         address,
         ...(blockNumber ? { blockNumber } : {}),
         ...(status ? { status } : {})
+      }).catch((error) => {
+        return unsupportedContractRpcEnvelope("get_contract_state", error);
       });
+      if (isCanonicalEnvelope(result)) {
+        return textEnvelope(result);
+      }
       return {
         content: [
           {
@@ -1257,7 +1302,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
         address,
         ...(blockNumber ? { blockNumber } : {}),
         ...(status ? { status } : {})
+      }).catch((error) => {
+        return unsupportedContractRpcEnvelope("get_contract_code", error);
       });
+      if (isCanonicalEnvelope(result)) {
+        return textEnvelope(result);
+      }
       return {
         content: [
           {
@@ -1295,7 +1345,12 @@ function registerDocsToolsAndResources(server: McpServer): void {
         address,
         ...(blockNumber ? { blockNumber } : {}),
         ...(status ? { status } : {})
+      }).catch((error) => {
+        return unsupportedContractRpcEnvelope("get_contract_snapshot", error);
       });
+      if (isCanonicalEnvelope(result)) {
+        return textEnvelope(result);
+      }
       return {
         content: [
           {
@@ -1323,7 +1378,28 @@ function registerDocsToolsAndResources(server: McpServer): void {
     },
     async ({ address }) => {
       const network = await buildNetworkStatusSnapshot();
-      const contract = await buildContractComposite(address);
+      const contract = await buildContractComposite(address).catch((error) => {
+        return unsupportedContractRpcEnvelope("run_contract_report", error);
+      });
+      if (isCanonicalEnvelope(contract)) {
+        return textEnvelope(
+          makeCanonicalResponse({
+            kind: "contract_report",
+            summary: `Contract report is not available for ${address} on this endpoint.`,
+            currentState: {
+              address,
+              endpoint: rpcService.getSnapshot().endpoint
+            },
+            blockers: contract.blockers,
+            nextActions: contract.next_actions,
+            fallbacks: contract.fallbacks,
+            data: {
+              network,
+              unsupported: contract
+            }
+          })
+        );
+      }
 
       return {
         content: [
@@ -2332,6 +2408,7 @@ export async function startServer(): Promise<void> {
 }
 
 async function resolveContractSchema(address?: string, code?: string): Promise<unknown> {
+  assertContractRpcSupported("resolve contract schema");
   if (code) {
     return rpcService.getContractSchema(code);
   }
@@ -2345,6 +2422,7 @@ async function resolveContractSchema(address?: string, code?: string): Promise<u
 }
 
 async function resolveContractSchemaFromAnySource(address?: string, code?: string, contractPath?: string): Promise<unknown> {
+  assertContractRpcSupported("resolve contract schema from endpoint");
   if (code || address) {
     return resolveContractSchema(address, code);
   }
@@ -2360,6 +2438,35 @@ async function resolveContractSchemaFromAnySource(address?: string, code?: strin
 function inferCurrentNetworkPreset() {
   const endpoint = rpcService.getSnapshot().endpoint.replace(/\/+$/, "");
   return listNetworkPresets().find((preset) => preset.rpcUrl.replace(/\/+$/, "") === endpoint);
+}
+
+function resolveEndpointProfile() {
+  const endpoint = rpcService.getSnapshot().endpoint;
+  const url = new URL(endpoint);
+  const isHostedStudionet = url.hostname === "studio.genlayer.com" && url.pathname === "/api";
+
+  if (isHostedStudionet) {
+    return {
+      mode: "studionet-hosted" as const,
+      endpoint,
+      contractRpcSupported: false,
+      reason: "Hosted Studionet does not currently provide reliable contract RPC methods like gen_getContractState/gen_getContractCode/gen_getContractSchema."
+    };
+  }
+
+  return {
+    mode: "generic" as const,
+    endpoint,
+    contractRpcSupported: true,
+    reason: null
+  };
+}
+
+function assertContractRpcSupported(operation: string): void {
+  const profile = resolveEndpointProfile();
+  if (!profile.contractRpcSupported) {
+    throw new Error(`${operation} is not supported on ${profile.mode} (${profile.endpoint}). ${profile.reason}`);
+  }
 }
 
 function presetChainImport(label: string | undefined): string {
@@ -2381,6 +2488,7 @@ async function buildEndpointCapabilityReport() {
   const snapshot = rpcService.getSnapshot();
   const probes = await Promise.all([
     probe("health", async () => rpcService.health()),
+    probe("balance", async () => rpcService.balance("")),
     probe("metrics", async () => rpcService.metrics()),
     probe("chainId", async () => rpcService.chainId()),
     probe("blockNumber", async () => rpcService.blockNumber()),
@@ -2487,37 +2595,56 @@ async function buildAutopilotBrief(input: {
   const capabilities = await buildEndpointCapabilityReport();
   const network = await buildNetworkStatusSnapshot();
   const docs = await buildRelevantDocsBundle(input.goal);
+  const capabilityState = summarizeCapabilities(capabilities);
 
   let contract: Awaited<ReturnType<typeof buildContractComposite>> | undefined;
   let handoff: string | undefined;
   let workflowText: string | undefined;
+  let contractRpcIssue: ReturnType<typeof makeCanonicalResponse> | undefined;
 
   if (input.address || input.code || input.contractPath) {
-    const schema = await resolveContractSchemaFromAnySource(input.address, input.code, input.contractPath);
-    const summary = normalizeContractSchema(schema);
-    const preset = inferCurrentNetworkPreset();
-    handoff = buildAgentHandoff({
-      goal: input.goal,
-      network: preset?.label ?? "custom",
-      summary,
-      ...(input.address ? { address: input.address } : {}),
-      ...(input.contractPath ? { contractPath: input.contractPath } : {})
+    const schema = await resolveContractSchemaFromAnySource(input.address, input.code, input.contractPath).catch((error) => {
+      return unsupportedContractRpcEnvelope("autopilot_brief_contract_context", error);
     });
-    workflowText = formatWorkflowPlan(
-      buildWorkflowPlan({
-        chainLabel: preset?.label ?? "custom",
-        schema: summary,
+
+    if (isCanonicalEnvelope(schema)) {
+      contractRpcIssue = schema;
+    } else {
+      const summary = normalizeContractSchema(schema);
+      const preset = inferCurrentNetworkPreset();
+      handoff = buildAgentHandoff({
+        goal: input.goal,
+        network: preset?.label ?? "custom",
+        summary,
         ...(input.address ? { address: input.address } : {}),
         ...(input.contractPath ? { contractPath: input.contractPath } : {})
-      })
-    );
+      });
+      workflowText = formatWorkflowPlan(
+        buildWorkflowPlan({
+          chainLabel: preset?.label ?? "custom",
+          schema: summary,
+          ...(input.address ? { address: input.address } : {}),
+          ...(input.contractPath ? { contractPath: input.contractPath } : {})
+        })
+      );
 
-    if (input.address) {
-      contract = await buildContractComposite(input.address);
+      if (input.address) {
+        contract = await buildContractComposite(input.address).catch(() => undefined);
+      }
     }
   }
 
+  const blockers = extractCapabilityBlockers(capabilities);
+  const fallbacks = [
+    "If a required capability is missing, stay within capability-supported flows such as docs, reports, and basic network inspection."
+  ];
+  if (contractRpcIssue) {
+    blockers.push(...contractRpcIssue.blockers);
+    fallbacks.push(...contractRpcIssue.fallbacks);
+  }
+
   const orderedNextActions = buildOrderedNextActions({
+    capabilities: capabilityState,
     goal: input.goal,
     hasAddress: Boolean(input.address),
     hasContractPath: Boolean(input.contractPath)
@@ -2527,10 +2654,13 @@ async function buildAutopilotBrief(input: {
     goal: input.goal,
     orderedNextActions,
     capabilities,
+    capabilityState,
+    blockers,
     network,
     ...(contract ? { contract } : {}),
     ...(handoff ? { handoff } : {}),
     ...(workflowText ? { workflowText } : {}),
+    ...(contractRpcIssue ? { contractRpcIssue } : {}),
     docs
   };
 }
@@ -2568,14 +2698,19 @@ async function buildRelevantDocsBundle(goal: "deploy" | "read" | "write" | "debu
 }
 
 function buildOrderedNextActions(input: {
+  capabilities: ReturnType<typeof summarizeCapabilities>;
   goal: "deploy" | "read" | "write" | "debug" | "onboard";
   hasAddress: boolean;
   hasContractPath: boolean;
 }) {
-  const actions = [
-    "Probe endpoint capabilities with `genlayer_probe_endpoint_capabilities`.",
-    "Capture live network context with `genlayer_network_status`."
-  ];
+  const actions = ["Probe endpoint capabilities with `genlayer_probe_endpoint_capabilities`."];
+
+  if (input.capabilities.chainReady) {
+    actions.push("Capture live network context with `genlayer_network_status`.");
+  } else {
+    actions.push("Stop and fix endpoint connectivity first because chainId or blockNumber is unavailable.");
+    return actions;
+  }
 
   if (input.hasContractPath) {
     actions.push("Load the local artifact with `genlayer_load_contract_artifact`.");
@@ -2598,7 +2733,11 @@ function buildOrderedNextActions(input: {
       break;
     case "debug":
       actions.push("Run `genlayer_run_transaction_report` for the target tx.");
-      actions.push("Use `genlayer_trace_transaction` only if the capability probe says it is exposed.");
+      if (input.capabilities.traceAvailable) {
+        actions.push("Use `genlayer_trace_transaction` because the endpoint exposes trace support.");
+      } else {
+        actions.push("Skip trace and rely on inspect/explain/report because trace support is not exposed.");
+      }
       break;
     case "onboard":
       actions.push("Generate an agent handoff with `genlayer_generate_agent_handoff`.");
@@ -2626,6 +2765,48 @@ function makeCanonicalResponse(input: {
     next_actions: input.nextActions,
     fallbacks: input.fallbacks,
     data: input.data
+  };
+}
+
+function unsupportedContractRpcEnvelope(operation: string, error: unknown) {
+  const profile = resolveEndpointProfile();
+  const message = error instanceof Error ? error.message : String(error);
+
+  return makeCanonicalResponse({
+    kind: "unsupported_contract_rpc",
+    summary: `Contract RPC operation "${operation}" is not supported on this endpoint.`,
+    currentState: {
+      operation,
+      endpoint: profile.endpoint,
+      endpoint_mode: profile.mode
+    },
+    blockers: [profile.reason ?? message],
+    nextActions: [
+      "Use docs, network status, capability probing, and transaction reporting on this endpoint.",
+      "For live contract introspection, use a full GenLayer node endpoint instead of hosted Studionet."
+    ],
+    fallbacks: [
+      "If you already have a transaction hash, use `genlayer_run_transaction_report`.",
+      "If you need deploy or execution flows, use CLI/SDK against a supported network path."
+    ],
+    data: {
+      upstream_error: message
+    }
+  });
+}
+
+function isCanonicalEnvelope(value: unknown): value is ReturnType<typeof makeCanonicalResponse> {
+  return Boolean(value) && typeof value === "object" && "kind" in (value as Record<string, unknown>) && "summary" in (value as Record<string, unknown>);
+}
+
+function textEnvelope(envelope: ReturnType<typeof makeCanonicalResponse>) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: formatJson(envelope)
+      }
+    ]
   };
 }
 
@@ -2671,15 +2852,28 @@ function extractCapabilityBlockers(report: { probes: Record<string, { exposed: b
 }
 
 function capabilityDrivenNextActions(report: { probes: Record<string, { exposed: boolean }> }) {
-  const actions = ["Use `genlayer_network_status` to capture the live network context."];
+  const capabilityState = summarizeCapabilities(report);
+  const actions = capabilityState.chainReady
+    ? ["Use `genlayer_network_status` to capture the live network context."]
+    : ["Do not proceed with protocol workflows until chainId and blockNumber are available."];
 
-  if (report.probes.traceTransaction?.exposed) {
+  if (capabilityState.traceAvailable) {
     actions.push("Trace-based debugging is available for transaction diagnostics.");
   } else {
     actions.push("Trace-based debugging is unavailable; prefer inspect, explain, and report tools.");
   }
 
   return actions;
+}
+
+function summarizeCapabilities(report: { probes: Record<string, { exposed: boolean }> }) {
+  return {
+    chainReady: Boolean(report.probes.chainId?.exposed && report.probes.blockNumber?.exposed),
+    traceAvailable: Boolean(report.probes.traceTransaction?.exposed),
+    metricsAvailable: Boolean(report.probes.metrics?.exposed),
+    balanceAvailable: Boolean(report.probes.balance?.exposed),
+    syncAvailable: Boolean(report.probes.syncing?.exposed)
+  };
 }
 
 function flattenWorkflowPlanActions(plan: { phases: Array<{ steps: Array<{ name: string; tool: string }> }> }) {

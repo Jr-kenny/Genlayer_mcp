@@ -229,6 +229,8 @@ High-level orchestration tools now use a canonical machine-readable response sha
 - `fallbacks`
 - `data`
 
+The autopilot and capability surfaces are capability-aware: they should prefer only actions supported by the currently configured endpoint and explicitly downgrade unsupported debug or ops paths into fallbacks.
+
 ### Live protocol tools
 
 1. `genlayer_list_networks`
