@@ -82,12 +82,22 @@ test("templates use the canonical documented APIs (not legacy forms)", () => {
   assert.match(judge, /gl\.nondet\.web\.get\(/);
   assert.match(judge, /gl\.nondet\.exec_prompt\(prompt, response_format="json"\)/);
   assert.match(oracle, /gl\.nondet\.web\.get\(/);
-  // sender uses the documented accessor.
-  assert.match(scaffoldContract("storage").code, /gl\.message\.sender_account/);
-  // No legacy gl.nondet.web.request form in any template.
+  // sender uses the form proven to construct on studionet (sender_account errors).
+  assert.match(scaffoldContract("storage").code, /gl\.message\.sender_address/);
+  // llm-judge imports typing because it annotates with typing.Any.
+  assert.match(judge, /^import typing$/m);
   for (const t of TEMPLATES) {
-    assert.doesNotMatch(scaffoldContract(t).code, /web\.request\(/, `${t} uses legacy web.request`);
+    const code = scaffoldContract(t).code;
+    assert.doesNotMatch(code, /web\.request\(/, `${t} uses legacy web.request`);
+    assert.doesNotMatch(code, /sender_account/, `${t} uses the broken sender_account`);
   }
+});
+
+test("lint flags the studionet construction traps", () => {
+  const senderTrap = lintContractSource('# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }\nfrom genlayer import *\nclass C(gl.Contract):\n    owner: Address\n    def __init__(self):\n        self.owner = gl.message.sender_account\n    @gl.public.view\n    def g(self) -> str:\n        return str(self.owner)');
+  assert.ok(senderTrap.findings.some((f) => f.rule === "sender-account"));
+  const typingTrap = lintContractSource('# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }\nfrom genlayer import *\nclass C(gl.Contract):\n    @gl.public.view\n    def g(self) -> typing.Any:\n        return 1');
+  assert.ok(typingTrap.findings.some((f) => f.rule === "missing-typing-import" && f.level === "error"));
 });
 
 test("canonical contract-rules sheet is exported and current", () => {

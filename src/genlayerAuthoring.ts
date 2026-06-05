@@ -113,6 +113,13 @@ export function lintContractSource(source: string): LintResult {
   if (!/@gl\.public\.(view|write)/.test(source)) {
     add("warning", 0, "no-public-methods", "No `@gl.public.view` / `@gl.public.write` methods. The contract has no callable surface.");
   }
+  // Module imported by usage but not declared -> NameError at construction (exit_code 1).
+  if (/\btyping\./.test(source) && !/^\s*import\s+typing\b/m.test(source)) {
+    add("error", 0, "missing-typing-import", "Uses `typing.` but never `import typing`. This errors construction (exit_code 1).", "Add `import typing` after the other imports.");
+  }
+  if (/\bjson\./.test(source) && !/^\s*import\s+json\b/m.test(source)) {
+    add("error", 0, "missing-json-import", "Uses `json.` but never `import json`.", "Add `import json`.");
+  }
 
   // 4. Per-line checks for the GenVM Python subset and storage anti-patterns.
   lines.forEach((raw, i) => {
@@ -130,6 +137,12 @@ export function lintContractSource(source: string): LintResult {
     if (/\bsorted\s*\(/.test(line)) add("warning", ln, "sorted", "`sorted()` is not supported by the GenVM Python subset.", "Sort manually with a `while` loop (selection sort).");
     if (/\.sort\s*\(/.test(line)) add("warning", ln, "list-sort", "`.sort()` is not supported by the GenVM Python subset.", "Sort manually with a `while` loop.");
     if (/\blambda\b/.test(line)) add("warning", ln, "lambda", "`lambda` is not supported by the GenVM Python subset.", "Use a named helper or inline the logic.");
+
+    // Documented but broken on studionet: gl.message.sender_account errors
+    // construction (exit_code 1). gl.message.sender_address is the tested form.
+    if (/gl\.message\.sender_account\b/.test(line)) {
+      add("warning", ln, "sender-account", "`gl.message.sender_account` errors construction on studionet (exit_code 1).", "Use `gl.message.sender_address` (works as str or assigned to an Address field).");
+    }
 
     // storage type hints: plain Python containers/ints as field/param annotations
     if (/^\s+\w+\s*:\s*(list|dict)\b/.test(line)) {
@@ -224,7 +237,7 @@ class ${cls}(gl.Contract):
     keys: DynArray[str]
 
     def __init__(self):
-        self.owner = gl.message.sender_account
+        self.owner = gl.message.sender_address
 
     @gl.public.write
     def set_value(self, key: str, value: str) -> None:
@@ -251,6 +264,7 @@ class ${cls}(gl.Contract):
   "llm-judge": (cls) => `from genlayer import *
 
 import json
+import typing
 
 
 # ${cls}: scores a web resource 0-100 with an LLM under validator consensus.
@@ -477,9 +491,9 @@ class ${cls}(gl.Contract):
     balances: TreeMap[str, u256]
 
     def __init__(self, initial_supply: int):
-        self.owner = gl.message.sender_account
+        self.owner = gl.message.sender_address
         self.total_supply = u256(initial_supply)
-        self.balances[str(gl.message.sender_account)] = u256(initial_supply)
+        self.balances[str(gl.message.sender_address)] = u256(initial_supply)
 
     @gl.public.view
     def balance_of(self, account: str) -> int:
@@ -489,7 +503,7 @@ class ${cls}(gl.Contract):
 
     @gl.public.write
     def transfer(self, to: str, amount: int) -> None:
-        sender = str(gl.message.sender_account)
+        sender = str(gl.message.sender_address)
         amt = u256(amount)
         sender_balance = self.balances[sender] if sender in self.balances else u256(0)
         if sender_balance < amt:
@@ -524,7 +538,7 @@ class MyContract(gl.Contract):
     count: u256
 
     def __init__(self):
-        self.owner = gl.message.sender_account   # set VALUES here, not types
+        self.owner = gl.message.sender_address   # set VALUES here, not types
 
     @gl.public.view
     def get(self, key: str) -> str:
@@ -541,7 +555,7 @@ class MyContract(gl.Contract):
 - Exactly one \`class X(gl.Contract)\`. Storage fields are class-level annotations; never assign annotated types in \`__init__\`.
 - Use GenLayer types: \`Address\`, \`u256\`/\`i256\`, \`TreeMap[K, V]\`, \`DynArray[T]\`. Never \`list\`, \`dict\`, or plain \`int\` for storage. For money use \`u256\` at atto-scale (value * 10**18).
 - GenVM Python subset: use \`while\` loops (not \`for\`); no \`sorted()\`, \`.sort()\`, \`lambda\`. Forbidden imports: \`os\`, \`sys\`, \`subprocess\`, \`random\`, \`requests\`, \`urllib\`, sockets, threads.
-- Sender: \`gl.message.sender_account\`.
+- Sender: \`gl.message.sender_address\`.
 
 ## Non-determinism (the GenLayer superpower)
 Only the subjective/external/AI judgment goes through an equivalence principle; everything else is plain deterministic code.
@@ -554,7 +568,8 @@ Only the subjective/external/AI judgment goes through an equivalence principle; 
 ## Deploy + debug
 - A deploy can FINALIZE while construction errored. Check \`receipt.consensus_data.leader_receipt[0].execution_result\`, not just the top-level status.
 - Reads (\`gen_call\`) need the contract FINALIZED, not just accepted. Right after deploy, "contract not found" usually means "not finalized yet", not a bad address.
-- \`invalid_contract\` with no trace, in order of likelihood: (1) comment under the runner header, (2) \`:test\`/\`:latest\`/unpinned runner, (3) a \`for\` loop / \`sorted\` / \`lambda\`, (4) \`list\`/\`dict\`/plain-\`int\` storage, (5) a forbidden import.
+- \`invalid_contract\` with no trace (the code did not load), in order of likelihood: (1) comment under the runner header, (2) \`:test\`/\`:latest\`/unpinned runner, (3) a \`for\` loop / \`sorted\` / \`lambda\`, (4) \`list\`/\`dict\`/plain-\`int\` storage, (5) a forbidden import.
+- \`exit_code 1\` (the code loaded but construction ran and raised): usually a missing import used by an annotation (e.g. \`typing.Any\` without \`import typing\`), or \`gl.message.sender_account\` (use \`gl.message.sender_address\`).
 
 ## Workflow (use these MCP tools)
 1. \`genlayer_scaffold_contract\` (storage | llm-judge | web-oracle | token) for a correct starting point.
