@@ -118,6 +118,12 @@ export function lintContractSource(source: string): LintResult {
   lines.forEach((raw, i) => {
     const line = raw.replace(/#.*$/, ""); // ignore trailing comments
     const ln = i + 1;
+    // Forbidden / non-deterministic imports. The GenVM sandbox disallows these,
+    // and they break determinism or reach outside the contract.
+    const importMatch = line.match(/^\s*(?:from|import)\s+(os|sys|subprocess|random|socket|requests|urllib|http|threading|multiprocessing|asyncio)\b/);
+    if (importMatch) {
+      add("error", ln, "forbidden-import", `Import "${importMatch[1]}" is not allowed in the GenVM sandbox.`, "For web access use gl.nondet.web; for randomness rely on validator consensus, not random.");
+    }
     if (/^\s*for\s+\S+\s+in\s+/.test(line)) {
       add("warning", ln, "for-loop", "`for` loops can be rejected by the GenVM Python subset. Reference contracts use `while` only.", "Rewrite as a `while` loop with an index counter.");
     }
@@ -334,7 +340,134 @@ class ${cls}(gl.Contract):
         return self.last_value
 `,
 
-  token: (cls) => `from genlayer import *
+  token: (_cls) => TOKEN_BODY(_cls)
+};
+
+// ── Test scaffolder (direct mode, genlayer-test) ───────────────────────────────
+// Direct-mode tests are fast in-memory tests (no Docker). The fixtures and mock
+// helpers below are the public genlayer-test API.
+
+export interface TestScaffoldResult {
+  template: ContractTemplate;
+  className: string;
+  path: string;
+  code: string;
+  summary: string;
+  nextSteps: string[];
+}
+
+function snakeCase(name: string): string {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .toLowerCase()
+    .replace(/^_+|_+$/g, "");
+}
+
+export function scaffoldTest(template: ContractTemplate, contractName?: string): TestScaffoldResult {
+  const className = toClassName(contractName, defaultClassName(template));
+  const file = snakeCase(className) || "contract";
+  const contractPath = `contracts/${file}.py`;
+  const code = TEST_BODIES[template](contractPath);
+  return {
+    template,
+    className,
+    path: `tests/direct/test_${file}.py`,
+    code,
+    summary: `Direct-mode test for the ${template} template using genlayer-test fixtures.`,
+    nextSteps: [
+      "Install the test framework: pip install genlayer-test",
+      `Save the contract at ${contractPath} and this file at tests/direct/test_${file}.py`,
+      "Run it: pytest tests/direct/ -v  (each test runs in ~30-50ms, no Docker)",
+      "When direct tests pass, write an integration test (gltest) for full consensus."
+    ]
+  };
+}
+
+const TEST_BODIES: Record<ContractTemplate, (path: string) => string> = {
+  storage: (path) => `def test_set_and_get(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("${path}")
+    direct_vm.sender = direct_alice
+
+    contract.set_value("greeting", "hello")
+
+    assert contract.get_value("greeting") == "hello"
+    assert "greeting" in contract.all_keys()
+
+
+def test_missing_key_is_empty(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("${path}")
+    direct_vm.sender = direct_alice
+    assert contract.get_value("nope") == ""
+`,
+
+  "llm-judge": (path) => `import json
+
+
+def test_judge_scores_from_mocked_web_and_llm(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("${path}")
+    direct_vm.sender = direct_alice
+
+    # Mock the web fetch and the LLM so the test is deterministic.
+    direct_vm.mock_web(r".*", {"status": 200, "body": "<html>a real working project</html>"})
+    direct_vm.mock_llm(r".*", json.dumps({"score": 82}))
+
+    result = contract.judge("https://example.com", "innovation and execution")
+
+    assert result["score"] == 82
+    assert result["stands_out"] is True
+    assert contract.get_last_score() == 82
+
+
+def test_low_score_does_not_stand_out(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("${path}")
+    direct_vm.sender = direct_alice
+    direct_vm.mock_web(r".*", {"status": 200, "body": "empty repo"})
+    direct_vm.mock_llm(r".*", json.dumps({"score": 20}))
+
+    result = contract.judge("https://example.com", "innovation")
+    assert result["stands_out"] is False
+`,
+
+  "web-oracle": (path) => `import json
+
+
+def test_refresh_reads_field(direct_vm, direct_deploy, direct_alice):
+    contract = direct_deploy("${path}")
+    direct_vm.sender = direct_alice
+
+    direct_vm.mock_web(
+        r".*api.*",
+        {"status": 200, "body": json.dumps({"price": "42.5"})},
+    )
+
+    value = contract.refresh("https://api.example.com/price", "price")
+
+    assert value == "42.5"
+    assert contract.get_last_value() == "42.5"
+`,
+
+  token: (path) => `def test_transfer_moves_balance(direct_vm, direct_deploy, direct_owner, direct_alice):
+    # Constructor arg: initial supply minted to the deployer.
+    contract = direct_deploy("${path}", args=[1000])
+    direct_vm.sender = direct_owner
+
+    contract.transfer(str(direct_alice), 100)
+
+    assert contract.balance_of(str(direct_alice)) == 100
+    assert contract.balance_of(str(direct_owner)) == 900
+
+
+def test_transfer_over_balance_reverts(direct_vm, direct_deploy, direct_owner, direct_alice):
+    contract = direct_deploy("${path}", args=[1000])
+
+    with direct_vm.expect_revert("Insufficient balance"):
+        with direct_vm.prank(direct_alice):
+            contract.transfer(str(direct_owner), 10_000)
+`
+};
+
+const TOKEN_BODY = (cls: string) => `from genlayer import *
 
 
 # ${cls}: in-contract balances with a transfer. No LLM, pure storage + checks.
@@ -368,5 +501,4 @@ class ${cls}(gl.Contract):
     @gl.public.view
     def get_total_supply(self) -> int:
         return int(self.total_supply)
-`
-};
+`;

@@ -38,7 +38,8 @@ import {
   CONTRACT_TEMPLATES,
   type ContractTemplate,
   lintContractSource,
-  scaffoldContract
+  scaffoldContract,
+  scaffoldTest
 } from "./genlayerAuthoring.js";
 
 const service = new GenlayerDocsService();
@@ -135,6 +136,35 @@ function registerAuthoring(server: McpServer): void {
     }
   );
 
+  server.registerTool(
+    "genlayer_scaffold_test",
+    {
+      title: "Scaffold Direct-Mode Test",
+      description:
+        "Generate a fast in-memory direct-mode test (genlayer-test) for a contract template. " +
+        "Uses the real fixtures (direct_vm, direct_deploy, direct_alice) and mocks web/LLM calls.",
+      inputSchema: {
+        template: z.enum(templateNames).describe("storage | llm-judge | web-oracle | token"),
+        name: z.string().optional().describe("Contract class name the test targets.")
+      },
+      annotations: { title: "Scaffold Direct-Mode Test", readOnlyHint: true, idempotentHint: true }
+    },
+    async ({ template, name }) => {
+      const result = scaffoldTest(template as ContractTemplate, name);
+      return textEnvelope(
+        makeCanonicalResponse({
+          kind: "test_scaffold",
+          summary: `Scaffolded a direct-mode test for the ${template} template.`,
+          currentState: { template, className: result.className, path: result.path },
+          blockers: [],
+          nextActions: result.nextSteps,
+          fallbacks: ["Mocks (mock_web/mock_llm) keep tests deterministic; clear them with direct_vm.clear_mocks()."],
+          data: { template, path: result.path, code: result.code }
+        })
+      );
+    }
+  );
+
   // ── Prompts: one-click GenLayer dev workflows for any MCP client ──
   server.registerPrompt(
     "genlayer_write_contract",
@@ -181,9 +211,17 @@ function registerAuthoring(server: McpServer): void {
             text:
               "Help me test this GenLayer contract.\n\n" +
               "1. Lint first with `genlayer_lint_contract` to rule out deploy-killers.\n" +
-              "2. Direct mode (fast, in-memory): exercise business logic, validation, and state transitions. This does NOT exercise validator agreement.\n" +
-              "3. Integration mode (slow, full consensus): exercise the equivalence principle with real web/LLM calls before you rely on it.\n" +
-              "4. After deploy, verify on-chain with `genlayer_get_contract_snapshot` and read methods; remember reads need the contract FINALIZED, not just accepted.\n" +
+              "2. Generate a starting test with `genlayer_scaffold_test`, then expand it.\n\n" +
+              "Direct mode (fast, in-memory, ~30-50ms, no Docker):\n" +
+              "- Install: `pip install genlayer-test`; run: `pytest tests/direct/ -v`\n" +
+              "- Fixtures: `direct_vm`, `direct_deploy`, `direct_alice` / `direct_bob` / `direct_owner`.\n" +
+              "- Deterministic mocks: `direct_vm.mock_web(regex, {\"status\":200,\"body\":...})` and `direct_vm.mock_llm(regex, response)`; reset with `direct_vm.clear_mocks()`.\n" +
+              "- Cheatcodes: `direct_vm.sender = alice`, `with direct_vm.expect_revert(\"msg\")`, `with direct_vm.prank(bob)`, `direct_vm.warp(...)`.\n\n" +
+              "Integration mode (full leader+validator consensus, after direct passes):\n" +
+              "- Install: `pip install genlayer-test[sim]` (or `genlayer up` for Docker Studio).\n" +
+              "- Run: `gltest tests/integration/ -v -s --network localnet` (or studionet / testnet_bradbury).\n" +
+              "- Pattern: `get_contract_factory(\"Name\").deploy(args=[])`, then `contract.method(args=[...]).transact()` for writes and `.call()` for reads; assert with `tx_execution_succeeded(receipt)`.\n\n" +
+              "After deploy, verify live with `genlayer_get_contract_snapshot`; reads need the contract FINALIZED, not just accepted.\n" +
               (code ? `\nContract under test:\n\n\`\`\`python\n${code}\n\`\`\`` : "")
           }
         }

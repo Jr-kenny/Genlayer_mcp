@@ -44,8 +44,13 @@ checks it.
   It catches the mistakes that make a deploy finalize with a bare
   `invalid_contract` (no stack trace): a comment line directly under the runner
   header, an unpinned or `:test` / `:latest` runner, a missing `gl.Contract`
-  class, and GenVM Python-subset issues such as `for` loops, `sorted`, `.sort`,
+  class, forbidden sandbox imports (`os`, `sys`, `subprocess`, `random`, ...),
+  and GenVM Python-subset issues such as `for` loops, `sorted`, `.sort`,
   `lambda`, and `list` / `dict` storage fields.
+- **`genlayer_scaffold_test`** generates a fast direct-mode test
+  (`genlayer-test`) for a template, using the real fixtures (`direct_vm`,
+  `direct_deploy`, `direct_alice`) and mocking web/LLM calls so tests stay
+  deterministic.
 
 Three guided prompts wrap the workflow for any MCP client:
 
