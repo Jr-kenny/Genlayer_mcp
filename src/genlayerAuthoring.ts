@@ -141,7 +141,7 @@ export function lintContractSource(source: string): LintResult {
     // Documented but broken on studionet: gl.message.sender_account errors
     // construction (exit_code 1). gl.message.sender_address is the tested form.
     if (/gl\.message\.sender_account\b/.test(line)) {
-      add("warning", ln, "sender-account", "`gl.message.sender_account` errors construction on studionet (exit_code 1).", "Use `gl.message.sender_address` (works as str or assigned to an Address field).");
+      add("warning", ln, "sender-account", "`gl.message.sender_account` can error construction (exit_code 1); behavior is runner-level, so it applies on every network.", "Use `gl.message.sender_address` (works as str or assigned to an Address field).");
     }
 
     // storage type hints: plain Python containers/ints as field/param annotations
@@ -564,6 +564,11 @@ Only the subjective/external/AI judgment goes through an equivalence principle; 
 - Deterministic external call (stable API): \`gl.eq_principle.strict_eq(fn)\`.
 - LLM / changing web: custom validator with \`gl.vm.run_nondet_unsafe(leader_fn, validator_fn)\`. Validators agree on a STABLE derived field (a band, a verdict, a status), never on raw free text.
 - Errors: \`raise gl.vm.UserError("[EXPECTED] ...")\`. Prefixes: [EXPECTED] business, [EXTERNAL] 4xx, [TRANSIENT] 5xx/network, [LLM_ERROR] bad LLM output.
+
+## Networks
+The runner is pinned by hash, so the GenVM and every rule here are identical across
+studionet, testnet Asimov, and testnet Bradbury. Networks differ only in gas (studionet
+is gasless; testnets need funded accounts), consensus, and finalization timing.
 
 ## Deploy + debug
 - A deploy can FINALIZE while construction errored. Check \`receipt.consensus_data.leader_receipt[0].execution_result\`, not just the top-level status.
