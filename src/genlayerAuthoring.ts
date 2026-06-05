@@ -568,7 +568,12 @@ Only the subjective/external/AI judgment goes through an equivalence principle; 
 ## Networks
 The runner is pinned by hash, so the GenVM and every rule here are identical across
 studionet, testnet Asimov, and testnet Bradbury. Networks differ only in gas (studionet
-is gasless; testnets need funded accounts), consensus, and finalization timing.
+is gasless; testnets need funded accounts), consensus, and finalization timing. All four
+scaffold templates are verified deploying on both studionet and testnet Bradbury, and the
+sender_account trap fails on both.
+On gas-metered testnets, deploy contracts one transaction at a time and wait for each
+receipt; firing several deploys back-to-back from one account can EVM-revert on
+nonce/gas (a client/transaction issue, not a contract-code issue).
 
 ## Deploy + debug
 - A deploy can FINALIZE while construction errored. Check \`receipt.consensus_data.leader_receipt[0].execution_result\`, not just the top-level status.
