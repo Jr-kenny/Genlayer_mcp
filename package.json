@@ -20,7 +20,8 @@
     "check": "npm run build && node dist/cli.js --check",
     "prepare": "npm run build",
     "start": "node dist/cli.js",
-    "start:http": "node dist/http.js"
+    "start:http": "node dist/http.js",
+    "test": "npm run build && node --test test/*.test.mjs"
   },
   "keywords": [
     "mcp",
