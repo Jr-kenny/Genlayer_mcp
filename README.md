@@ -22,11 +22,39 @@ It parses that bundle into sections and exposes:
 - individual section resources
 - live GenLayer JSON-RPC tools for contract and transaction inspection
 - a browsable RPC configuration resource
+- contract authoring tools: scaffold a starter contract and lint it before deploy
+- guided MCP prompts for writing, testing, and debugging contracts
 
 This repository supports two transports:
 
 - `stdio` for local CLI tools such as Claude Code, Codex, Cursor, VS Code, and Gemini CLI
 - Streamable HTTP for deployed remote MCP usage
+
+## Build a contract (authoring tools, new in 2.2)
+
+If you are new to GenLayer, this is the fast path from zero to a deployable
+contract. It does not just point you at docs, it gives you working code and
+checks it.
+
+- **`genlayer_scaffold_contract`** generates a working starter Intelligent
+  Contract for a template (`storage`, `llm-judge`, `web-oracle`, `token`). The
+  output already has the runner header pinned and avoids the common GenVM
+  deploy-killers, so it deploys as-is.
+- **`genlayer_lint_contract`** runs static pre-deploy checks on contract source.
+  It catches the mistakes that make a deploy finalize with a bare
+  `invalid_contract` (no stack trace): a comment line directly under the runner
+  header, an unpinned or `:test` / `:latest` runner, a missing `gl.Contract`
+  class, and GenVM Python-subset issues such as `for` loops, `sorted`, `.sort`,
+  `lambda`, and `list` / `dict` storage fields.
+
+Three guided prompts wrap the workflow for any MCP client:
+
+- **`genlayer_write_contract`** scaffold, decide what needs consensus, then lint.
+- **`genlayer_test_contract`** direct-mode then integration testing.
+- **`genlayer_debug_deploy`** the checklist for a deploy that errored on-chain.
+
+Typical loop: scaffold, edit, `genlayer_lint_contract` until it is clean, deploy,
+then inspect it live with `genlayer_get_contract_snapshot`.
 
 ## RPC configuration
 
