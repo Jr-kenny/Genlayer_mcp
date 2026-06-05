@@ -1,5 +1,10 @@
 # GenLayer MCP
 
+[![CI](https://github.com/Jr-kenny/Genlayer_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Jr-kenny/Genlayer_mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-3c873a.svg)](package.json)
+[![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-7c5cff.svg)](https://modelcontextprotocol.io)
+
 An MCP server that combines searchable GenLayer documentation with live GenLayer protocol RPC inspection for MCP-compatible clients like Claude Code, Cursor, VS Code, Gemini CLI, Codex, and remote MCP clients over HTTP.
 
 This project still does not sign transactions or manage private keys. It now supports live node inspection and contract interaction through GenLayer JSON-RPC methods such as `gen_call`, `gen_getContractState`, `gen_getContractCode`, `gen_getContractSchema`, `gen_getTransactionStatus`, and `gen_getTransactionReceipt`.

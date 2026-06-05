@@ -7,6 +7,14 @@
     "genlayer-docs-mcp": "dist/cli.js",
     "genlayer-docs-http": "dist/http.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json && chmod +x dist/cli.js dist/http.js",
     "check": "npm run build && node dist/cli.js --check",
@@ -16,6 +24,7 @@
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "genlayer",
     "documentation",
     "json-rpc",
@@ -23,8 +32,16 @@
     "claude-code",
     "codex"
   ],
-  "author": "",
+  "author": "Jr-kenny",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jr-kenny/Genlayer_mcp.git"
+  },
+  "homepage": "https://github.com/Jr-kenny/Genlayer_mcp#readme",
+  "bugs": {
+    "url": "https://github.com/Jr-kenny/Genlayer_mcp/issues"
+  },
   "type": "commonjs",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
