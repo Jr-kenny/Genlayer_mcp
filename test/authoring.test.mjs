@@ -74,3 +74,24 @@ test("web-using templates mock the network in their tests", () => {
   assert.match(scaffoldTest("llm-judge").code, /mock_llm/);
   assert.match(scaffoldTest("web-oracle").code, /mock_web/);
 });
+
+test("templates use the canonical documented APIs (not legacy forms)", () => {
+  const judge = scaffoldContract("llm-judge").code;
+  const oracle = scaffoldContract("web-oracle").code;
+  // Canonical web + LLM APIs per the GenLayer docs / write-contract skill.
+  assert.match(judge, /gl\.nondet\.web\.get\(/);
+  assert.match(judge, /gl\.nondet\.exec_prompt\(prompt, response_format="json"\)/);
+  assert.match(oracle, /gl\.nondet\.web\.get\(/);
+  // sender uses the documented accessor.
+  assert.match(scaffoldContract("storage").code, /gl\.message\.sender_account/);
+  // No legacy gl.nondet.web.request form in any template.
+  for (const t of TEMPLATES) {
+    assert.doesNotMatch(scaffoldContract(t).code, /web\.request\(/, `${t} uses legacy web.request`);
+  }
+});
+
+test("canonical contract-rules sheet is exported and current", () => {
+  assert.equal(typeof pkg.CONTRACT_RULES_MARKDOWN, "string");
+  assert.match(pkg.CONTRACT_RULES_MARKDOWN, /py-genlayer:1jb45aa8/);
+  assert.match(pkg.CONTRACT_RULES_MARKDOWN, /comment lines may follow the runner header|comment directly under it|No comment lines may follow/i);
+});

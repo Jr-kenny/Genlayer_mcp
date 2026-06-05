@@ -58,6 +58,12 @@ Three guided prompts wrap the workflow for any MCP client:
 - **`genlayer_test_contract`** direct-mode then integration testing.
 - **`genlayer_debug_deploy`** the checklist for a deploy that errored on-chain.
 
+And a single always-available resource, **`genlayer://guide/contract-rules`**, is
+an authoritative cheat sheet (skeleton, storage types, web/LLM/equivalence APIs,
+the GenVM Python-subset rules, and the deploy/finalize/debug checklist) that any
+connecting agent can read to get contract writing and debugging right. It tracks
+the latest GenLayer docs and the official write-contract / direct-tests skills.
+
 Typical loop: scaffold, edit, `genlayer_lint_contract` until it is clean, deploy,
 then inspect it live with `genlayer_get_contract_snapshot`.
 

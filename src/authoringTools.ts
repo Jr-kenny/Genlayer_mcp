@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  CONTRACT_RULES_MARKDOWN,
   CONTRACT_TEMPLATES,
   type ContractTemplate,
   lintContractSource,
@@ -11,6 +12,28 @@ import { makeCanonicalResponse, textEnvelope } from "./mcpResponses.js";
 
 export function registerAuthoring(server: McpServer): void {
   const templateNames = Object.keys(CONTRACT_TEMPLATES) as [ContractTemplate, ...ContractTemplate[]];
+
+  // Always-available authoritative cheat sheet so any connecting agent can get
+  // contract writing, deployment, and debugging right.
+  server.registerResource(
+    "genlayer-contract-rules",
+    "genlayer://guide/contract-rules",
+    {
+      title: "GenLayer Contract Rules",
+      description:
+        "Authoritative cheat sheet for writing, deploying, and debugging GenVM intelligent contracts.",
+      mimeType: "text/markdown"
+    },
+    async () => ({
+      contents: [
+        {
+          uri: "genlayer://guide/contract-rules",
+          mimeType: "text/markdown",
+          text: CONTRACT_RULES_MARKDOWN
+        }
+      ]
+    })
+  );
 
   server.registerTool(
     "genlayer_scaffold_contract",

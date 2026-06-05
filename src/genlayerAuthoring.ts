@@ -270,7 +270,7 @@ class ${cls}(gl.Contract):
         def leader_fn() -> typing.Any:
             page = ""
             try:
-                response = gl.nondet.web.request(url, method="GET")
+                response = gl.nondet.web.get(url)
                 page = response.body.decode("utf-8", errors="ignore")[:6000]
             except Exception:
                 page = "[unreachable]"
@@ -280,7 +280,7 @@ class ${cls}(gl.Contract):
                 "criteria. Return ONLY JSON: {\\"score\\": <0-100>}.\\n"
                 "Criteria: " + criteria + "\\nResource (" + url + "):\\n" + page
             )
-            raw = gl.nondet.exec_prompt(prompt)
+            raw = gl.nondet.exec_prompt(prompt, response_format="json")
             data = raw if isinstance(raw, dict) else json.loads(
                 str(raw)[str(raw).find("{"): str(raw).rfind("}") + 1]
             )
@@ -325,7 +325,7 @@ class ${cls}(gl.Contract):
 
     def _fetch_field(self, api_url: str, json_field: str) -> str:
         def fetch() -> str:
-            response = gl.nondet.web.request(api_url, method="GET")
+            response = gl.nondet.web.get(api_url)
             if response.status >= 400:
                 raise gl.vm.UserError("[EXTERNAL] API returned " + str(response.status))
             data = json.loads(response.body.decode("utf-8"))
@@ -501,4 +501,65 @@ class ${cls}(gl.Contract):
     @gl.public.view
     def get_total_supply(self) -> int:
         return int(self.total_supply)
+`;
+
+// ── Canonical contract rules ───────────────────────────────────────────────────
+// A single authoritative cheat sheet that any connected agent can read to write,
+// deploy, and debug GenVM contracts correctly. Reflects the latest GenLayer docs
+// and the official write-contract / direct-tests skills, plus deploy failures
+// observed firsthand.
+export const CONTRACT_RULES_MARKDOWN = `# GenLayer Intelligent Contract Rules (authoritative cheat sheet)
+
+Pinned runner: \`py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6\`
+
+## Skeleton (get this exactly right)
+\`\`\`python
+# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+from genlayer import *
+
+class MyContract(gl.Contract):
+    owner: Address                 # storage = class-level annotations
+    items: TreeMap[str, str]
+    order: DynArray[str]
+    count: u256
+
+    def __init__(self):
+        self.owner = gl.message.sender_account   # set VALUES here, not types
+
+    @gl.public.view
+    def get(self, key: str) -> str:
+        return self.items[key] if key in self.items else ""
+
+    @gl.public.write
+    def set(self, key: str, value: str) -> None:
+        self.items[key] = value
+\`\`\`
+
+## Hard rules
+- First line MUST be the pinned \`# { "Depends": "py-genlayer:<hash>" }\`. No \`:test\` / \`:latest\` / unpinned.
+- **No comment lines may follow the runner header.** A comment directly under it breaks header parsing and the deploy finalizes with a bare \`invalid_contract\` (no stack trace). Put descriptions BELOW the imports.
+- Exactly one \`class X(gl.Contract)\`. Storage fields are class-level annotations; never assign annotated types in \`__init__\`.
+- Use GenLayer types: \`Address\`, \`u256\`/\`i256\`, \`TreeMap[K, V]\`, \`DynArray[T]\`. Never \`list\`, \`dict\`, or plain \`int\` for storage. For money use \`u256\` at atto-scale (value * 10**18).
+- GenVM Python subset: use \`while\` loops (not \`for\`); no \`sorted()\`, \`.sort()\`, \`lambda\`. Forbidden imports: \`os\`, \`sys\`, \`subprocess\`, \`random\`, \`requests\`, \`urllib\`, sockets, threads.
+- Sender: \`gl.message.sender_account\`.
+
+## Non-determinism (the GenLayer superpower)
+Only the subjective/external/AI judgment goes through an equivalence principle; everything else is plain deterministic code.
+- Web: \`gl.nondet.web.get(url)\` / \`gl.nondet.web.post(url, body=..., headers=...)\`. Response has \`.status\` and \`.body\` (bytes; \`.body.decode("utf-8")\`).
+- LLM: \`gl.nondet.exec_prompt(prompt, response_format="json")\`. Always validate/parse defensively.
+- Deterministic external call (stable API): \`gl.eq_principle.strict_eq(fn)\`.
+- LLM / changing web: custom validator with \`gl.vm.run_nondet_unsafe(leader_fn, validator_fn)\`. Validators agree on a STABLE derived field (a band, a verdict, a status), never on raw free text.
+- Errors: \`raise gl.vm.UserError("[EXPECTED] ...")\`. Prefixes: [EXPECTED] business, [EXTERNAL] 4xx, [TRANSIENT] 5xx/network, [LLM_ERROR] bad LLM output.
+
+## Deploy + debug
+- A deploy can FINALIZE while construction errored. Check \`receipt.consensus_data.leader_receipt[0].execution_result\`, not just the top-level status.
+- Reads (\`gen_call\`) need the contract FINALIZED, not just accepted. Right after deploy, "contract not found" usually means "not finalized yet", not a bad address.
+- \`invalid_contract\` with no trace, in order of likelihood: (1) comment under the runner header, (2) \`:test\`/\`:latest\`/unpinned runner, (3) a \`for\` loop / \`sorted\` / \`lambda\`, (4) \`list\`/\`dict\`/plain-\`int\` storage, (5) a forbidden import.
+
+## Workflow (use these MCP tools)
+1. \`genlayer_scaffold_contract\` (storage | llm-judge | web-oracle | token) for a correct starting point.
+2. \`genlayer_lint_contract\` until zero errors.
+3. \`genlayer_scaffold_test\` then \`pip install genlayer-test\` and \`pytest tests/direct/ -v\` (fixtures: direct_vm, direct_deploy, direct_alice; mock with \`direct_vm.mock_web\` / \`mock_llm\`).
+4. Integration: \`gltest tests/integration/ -v -s\` for full consensus.
+5. Deploy, wait for FINALIZED, then inspect live with \`genlayer_get_contract_snapshot\`.
 `;
