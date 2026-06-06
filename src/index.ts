@@ -45,7 +45,7 @@ export function createDocsServer(): McpServer {
   const server = new McpServer(
     {
       name: "genskill-mcp",
-      version: "2.3.0",
+      version: "2.3.1",
       websiteUrl: "https://docs.genlayer.com/",
       description: "MCP server for GenLayer documentation, protocol inspection, and transaction workflows."
     },

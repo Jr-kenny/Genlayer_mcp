@@ -15,7 +15,7 @@ This project does not sign transactions or manage private keys. It supports live
 | Use | Command / URL |
 | --- | --- |
 | Local (stdio) | `npx -y genskill-mcp` |
-| Hosted (remote) | `https://genlayer-mcp.vercel.app/mcp` |
+| Hosted (remote) | `https://genskill-mcp.vercel.app/mcp` |
 
 Per-client setup (Claude Code, Cursor, VS Code, Gemini, Codex, remote) is in the quickstarts below.
 
@@ -220,7 +220,7 @@ This is not Claude-specific. It is the deployed transport for any client that ca
 2. The deployed MCP endpoint is:
 
    ```text
-   https://genlayer-mcp.vercel.app/mcp
+   https://genskill-mcp.vercel.app/mcp
    ```
 
 3. The deployed service also exposes:
@@ -234,7 +234,7 @@ This is not Claude-specific. It is the deployed transport for any client that ca
 Use:
 
 ```text
-https://genlayer-mcp.vercel.app/mcp
+https://genskill-mcp.vercel.app/mcp
 ```
 
 This applies to Claude-hosted integrations, ChatGPT-style apps, and other remote AI clients where MCP server URLs are supported.
@@ -256,14 +256,14 @@ This repository is configured for Vercel through `vercel.json` and the Web-stand
 Public MCP endpoint on Vercel:
 
 ```text
-https://genlayer-mcp.vercel.app/mcp
+https://genskill-mcp.vercel.app/mcp
 ```
 
 Useful checks:
 
-- `https://genlayer-mcp.vercel.app/`
-- `https://genlayer-mcp.vercel.app/health`
-- `POST https://genlayer-mcp.vercel.app/mcp` from an MCP client
+- `https://genskill-mcp.vercel.app/`
+- `https://genskill-mcp.vercel.app/health`
+- `POST https://genskill-mcp.vercel.app/mcp` from an MCP client
 
 Notes:
 
