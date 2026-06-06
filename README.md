@@ -1,7 +1,7 @@
 # GenLayer MCP
 
-[![npm](https://img.shields.io/npm/v/genlayer-docs-mcp.svg)](https://www.npmjs.com/package/genlayer-docs-mcp)
-[![CI](https://github.com/Jr-kenny/Genlayer_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Jr-kenny/Genlayer_mcp/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/genskill-mcp.svg)](https://www.npmjs.com/package/genskill-mcp)
+[![CI](https://github.com/Jr-kenny/genskill-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Jr-kenny/genskill-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-3c873a.svg)](package.json)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-7c5cff.svg)](https://modelcontextprotocol.io)
@@ -14,7 +14,7 @@ This project does not sign transactions or manage private keys. It supports live
 
 | Use | Command / URL |
 | --- | --- |
-| Local (stdio) | `npx -y genlayer-docs-mcp` |
+| Local (stdio) | `npx -y genskill-mcp` |
 | Hosted (remote) | `https://genlayer-mcp.vercel.app/mcp` |
 
 Per-client setup (Claude Code, Cursor, VS Code, Gemini, Codex, remote) is in the quickstarts below.
@@ -93,7 +93,7 @@ https://studio.genlayer.com/api
 ## Quickstart for Claude Code
 
 ```bash
-claude mcp add --transport stdio genlayer-docs -- npx -y genlayer-docs-mcp
+claude mcp add --transport stdio genskill -- npx -y genskill-mcp
 ```
 
 Then start Claude Code:
@@ -108,7 +108,7 @@ Inside Claude Code, run:
 /mcp
 ```
 
-The `genlayer-docs` server and its tool endpoints should be listed.
+The `genskill` server and its tool endpoints should be listed.
 
 ## Quickstart for Cursor (per-project)
 
@@ -117,9 +117,9 @@ Add this to `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "genlayer-docs": {
+    "genskill": {
       "command": "npx",
-      "args": ["-y", "genlayer-docs-mcp"]
+      "args": ["-y", "genskill-mcp"]
     }
   }
 }
@@ -135,10 +135,10 @@ Add this to `.vscode/mcp.json`:
 ```json
 {
   "servers": {
-    "genlayer-docs": {
+    "genskill": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "genlayer-docs-mcp"]
+      "args": ["-y", "genskill-mcp"]
     }
   },
   "inputs": []
@@ -150,7 +150,7 @@ Add this to `.vscode/mcp.json`:
 Add the MCP server globally:
 
 ```bash
-gemini mcp add --scope user genlayer-docs npx -y genlayer-docs-mcp
+gemini mcp add --scope user genskill npx -y genskill-mcp
 ```
 
 Confirm it is registered:
@@ -164,7 +164,7 @@ gemini mcp list
 Add the MCP server with the Codex CLI:
 
 ```bash
-codex mcp add genlayer-docs -- npx -y genlayer-docs-mcp
+codex mcp add genskill -- npx -y genskill-mcp
 ```
 
 Confirm it is registered:
@@ -176,9 +176,9 @@ codex mcp list
 Alternatively, add this to a Codex MCP config:
 
 ```toml
-[mcp_servers.genlayer-docs]
+[mcp_servers.genskill]
 command = "npx"
-args = ["-y", "genlayer-docs-mcp"]
+args = ["-y", "genskill-mcp"]
 ```
 
 Restart Codex if needed so it reloads the MCP config.
@@ -190,8 +190,8 @@ For source-based usage instead of installing from npm:
 1. Clone the repo:
 
    ```bash
-   git clone https://github.com/Jr-kenny/Genlayer_mcp
-   cd Genlayer_mcp
+   git clone https://github.com/Jr-kenny/genskill-mcp
+   cd genskill-mcp
    ```
 
 2. Install dependencies and build:
@@ -204,7 +204,7 @@ For source-based usage instead of installing from npm:
 3. Run the local entrypoint:
 
    ```bash
-   node /absolute/path/to/Genlayer_mcp/dist/cli.js
+   node /absolute/path/to/genskill-mcp/dist/cli.js
    ```
 
 Substitute that `node .../dist/cli.js` command in any MCP client config for source-based usage over `npx`.
@@ -544,8 +544,8 @@ The workflow checks the tag matches `package.json`, runs the tests, and publishe
 with npm provenance. Once published, consumers update with:
 
 ```bash
-npx -y genlayer-docs-mcp@latest      # always newest
-npm update -g genlayer-docs-mcp      # if installed globally
+npx -y genskill-mcp@latest      # always newest
+npm update -g genskill-mcp      # if installed globally
 ```
 
 Remote (Vercel) users need no action — the hosted endpoint auto-deploys from

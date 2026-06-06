@@ -1,11 +1,11 @@
 {
-  "name": "genlayer-docs-mcp",
-  "version": "2.2.2",
+  "name": "genskill-mcp",
+  "version": "2.3.0",
   "description": "An MCP server for GenLayer documentation search and live protocol RPC inspection.",
   "main": "dist/cli.js",
   "bin": {
-    "genlayer-docs-mcp": "dist/cli.js",
-    "genlayer-docs-http": "dist/http.js"
+    "genskill-mcp": "dist/cli.js",
+    "genskill-mcp-http": "dist/http.js"
   },
   "files": [
     "dist",
@@ -41,11 +41,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Jr-kenny/Genlayer_mcp.git"
+    "url": "git+https://github.com/Jr-kenny/genskill-mcp.git"
   },
-  "homepage": "https://github.com/Jr-kenny/Genlayer_mcp#readme",
+  "homepage": "https://github.com/Jr-kenny/genskill-mcp#readme",
   "bugs": {
-    "url": "https://github.com/Jr-kenny/Genlayer_mcp/issues"
+    "url": "https://github.com/Jr-kenny/genskill-mcp/issues"
   },
   "type": "commonjs",
   "dependencies": {

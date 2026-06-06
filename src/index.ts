@@ -44,8 +44,8 @@ const workflowSessions = new WorkflowSessionStore();
 export function createDocsServer(): McpServer {
   const server = new McpServer(
     {
-      name: "genlayer-docs-mcp",
-      version: "2.2.2",
+      name: "genskill-mcp",
+      version: "2.3.0",
       websiteUrl: "https://docs.genlayer.com/",
       description: "MCP server for GenLayer documentation, protocol inspection, and transaction workflows."
     },
@@ -2332,7 +2332,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
   );
 
   server.registerResource(
-    "genlayer-docs-index",
+    "genskill-index",
     "genlayer://docs/index",
     {
       title: "GenLayer Docs Index",

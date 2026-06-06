@@ -18,7 +18,7 @@ export async function startHttpServer(): Promise<void> {
 
       if (requestUrl.pathname === "/") {
         writeJson(res, 200, {
-          name: "genlayer-mcp",
+          name: "genskill-mcp",
           transport: "streamable-http",
           endpoint: "/mcp",
           status: "ok"
