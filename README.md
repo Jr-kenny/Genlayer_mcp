@@ -1,5 +1,6 @@
 # GenLayer MCP
 
+[![npm](https://img.shields.io/npm/v/genlayer-docs-mcp.svg)](https://www.npmjs.com/package/genlayer-docs-mcp)
 [![CI](https://github.com/Jr-kenny/Genlayer_mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Jr-kenny/Genlayer_mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-3c873a.svg)](package.json)
@@ -7,7 +8,16 @@
 
 An MCP server that combines searchable GenLayer documentation with live GenLayer protocol RPC inspection for MCP-compatible clients like Claude Code, Cursor, VS Code, Gemini CLI, Codex, and remote MCP clients over HTTP.
 
-This project still does not sign transactions or manage private keys. It now supports live node inspection and contract interaction through GenLayer JSON-RPC methods such as `gen_call`, `gen_getContractState`, `gen_getContractCode`, `gen_getContractSchema`, `gen_getTransactionStatus`, and `gen_getTransactionReceipt`.
+This project does not sign transactions or manage private keys. It supports live node inspection and contract interaction through GenLayer JSON-RPC methods such as `gen_call`, `gen_getContractState`, `gen_getContractCode`, `gen_getContractSchema`, `gen_getTransactionStatus`, and `gen_getTransactionReceipt`.
+
+## Install
+
+| Use | Command / URL |
+| --- | --- |
+| Local (stdio) | `npx -y genlayer-docs-mcp` |
+| Hosted (remote) | `https://genlayer-mcp.vercel.app/mcp` |
+
+Per-client setup (Claude Code, Cursor, VS Code, Gemini, Codex, remote) is in the quickstarts below.
 
 ## What this server does
 
@@ -83,7 +93,7 @@ https://studio.genlayer.com/api
 ## Quickstart for Claude Code
 
 ```bash
-claude mcp add --transport stdio genlayer-docs -- npx -y github:Jr-kenny/Genlayer_mcp
+claude mcp add --transport stdio genlayer-docs -- npx -y genlayer-docs-mcp
 ```
 
 Then start Claude Code:
@@ -109,7 +119,7 @@ Add this to `.cursor/mcp.json`:
   "mcpServers": {
     "genlayer-docs": {
       "command": "npx",
-      "args": ["-y", "github:Jr-kenny/Genlayer_mcp"]
+      "args": ["-y", "genlayer-docs-mcp"]
     }
   }
 }
@@ -128,7 +138,7 @@ Add this to `.vscode/mcp.json`:
     "genlayer-docs": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "github:Jr-kenny/Genlayer_mcp"]
+      "args": ["-y", "genlayer-docs-mcp"]
     }
   },
   "inputs": []
@@ -140,7 +150,7 @@ Add this to `.vscode/mcp.json`:
 Add the MCP server globally:
 
 ```bash
-gemini mcp add --scope user genlayer-docs npx -y github:Jr-kenny/Genlayer_mcp
+gemini mcp add --scope user genlayer-docs npx -y genlayer-docs-mcp
 ```
 
 Confirm it is registered:
@@ -154,7 +164,7 @@ gemini mcp list
 Add the MCP server with the Codex CLI:
 
 ```bash
-codex mcp add genlayer-docs -- npx -y github:Jr-kenny/Genlayer_mcp
+codex mcp add genlayer-docs -- npx -y genlayer-docs-mcp
 ```
 
 Confirm it is registered:
@@ -168,14 +178,14 @@ Alternatively, add this to a Codex MCP config:
 ```toml
 [mcp_servers.genlayer-docs]
 command = "npx"
-args = ["-y", "github:Jr-kenny/Genlayer_mcp"]
+args = ["-y", "genlayer-docs-mcp"]
 ```
 
 Restart Codex if needed so it reloads the MCP config.
 
 ## Quickstart from source
 
-For source-based usage instead of launching from GitHub:
+For source-based usage instead of installing from npm:
 
 1. Clone the repo:
 
