@@ -1,6 +1,6 @@
 {
   "name": "genlayer-docs-mcp",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "An MCP server for GenLayer documentation search and live protocol RPC inspection.",
   "main": "dist/cli.js",
   "bin": {
@@ -34,6 +34,10 @@
     "codex"
   ],
   "author": "Jr-kenny",
+  "contributors": [
+    "Jr-kenny (https://github.com/Jr-kenny)",
+    "Prime isles (https://github.com/Prime-isles)"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

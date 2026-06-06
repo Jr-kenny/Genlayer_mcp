@@ -550,3 +550,10 @@ npm update -g genlayer-docs-mcp      # if installed globally
 
 Remote (Vercel) users need no action — the hosted endpoint auto-deploys from
 `main`; clients pick up changes on reconnect.
+
+## Credits
+
+Built and maintained by:
+
+- [Jr-kenny](https://github.com/Jr-kenny)
+- [Prime isles](https://github.com/Prime-isles)
