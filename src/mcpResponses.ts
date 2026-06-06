@@ -1,4 +1,4 @@
-// Shared response envelope helpers for the GenLayer MCP tools.
+// Shared response envelope helpers for the genskill-mcp tools.
 // Every tool returns the same canonical shape so clients can parse uniformly.
 
 import { formatJson } from "./genlayerRpc.js";

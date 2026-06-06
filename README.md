@@ -314,7 +314,7 @@ The autopilot and capability surfaces are capability-aware: they should prefer o
    Probes which HTTP and RPC surfaces are actually exposed on the configured GenLayer deployment.
 
 9. `genlayer_generate_agent_handoff`
-   Generates an explicit ordered handoff bundle so weaker agents know exactly which GenLayer MCP tools to call next.
+   Generates an explicit ordered handoff bundle so weaker agents know exactly which genskill-mcp tools to call next.
 
 10. `genlayer_get_contract_interface`
    Normalizes a contract schema into constructor, view methods, and write methods.

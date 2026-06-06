@@ -1,4 +1,4 @@
-// Contract authoring helpers for the GenLayer MCP server.
+// Contract authoring helpers for the genskill-mcp server.
 //
 // Two capabilities, both pure and dependency-free so they are easy to test:
 //   - scaffoldContract(): emit a working starter Intelligent Contract for a

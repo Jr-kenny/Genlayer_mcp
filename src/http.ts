@@ -77,7 +77,7 @@ export async function startHttpServer(): Promise<void> {
     server.once("error", reject);
   });
 
-  console.error(`GenLayer MCP HTTP server listening on port ${port}`);
+  console.error(`genskill-mcp HTTP server listening on port ${port}`);
 
   const shutdown = () => {
     server.close(() => {
