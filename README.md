@@ -1,4 +1,6 @@
-# GenLayer MCP
+# genskill-mcp
+
+> An MCP server that lets any AI agent build on GenLayer: search the docs, inspect contracts and transactions over RPC, and scaffold, lint, and test Intelligent Contracts.
 
 [![npm](https://img.shields.io/npm/v/genskill-mcp.svg)](https://www.npmjs.com/package/genskill-mcp)
 [![CI](https://github.com/Jr-kenny/genskill-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Jr-kenny/genskill-mcp/actions/workflows/ci.yml)
@@ -6,7 +8,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-3c873a.svg)](package.json)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-7c5cff.svg)](https://modelcontextprotocol.io)
 
-An MCP server that combines searchable GenLayer documentation with live GenLayer protocol RPC inspection for MCP-compatible clients like Claude Code, Cursor, VS Code, Gemini CLI, Codex, and remote MCP clients over HTTP.
+genskill-mcp is a Model Context Protocol server for MCP-compatible clients (Claude Code, Cursor, VS Code, Gemini CLI, Codex, and remote MCP clients over HTTP). It combines searchable GenLayer documentation, live protocol/RPC inspection of contracts and transactions, and a contract authoring toolkit (scaffold, lint, and test Intelligent Contracts), so an agent can go from zero to a deployable contract without leaving its editor.
 
 This project does not sign transactions or manage private keys. It supports live node inspection and contract interaction through GenLayer JSON-RPC methods such as `gen_call`, `gen_getContractState`, `gen_getContractCode`, `gen_getContractSchema`, `gen_getTransactionStatus`, and `gen_getTransactionReceipt`.
 

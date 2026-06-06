@@ -1,6 +1,6 @@
 {
   "name": "genskill-mcp",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "An MCP server for GenLayer documentation search and live protocol RPC inspection.",
   "main": "dist/cli.js",
   "bin": {
