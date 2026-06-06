@@ -516,3 +516,27 @@ npm start
 ```
 
 `npm run check` verifies that the server can fetch and parse the live GenLayer docs bundle.
+
+## Releasing (maintainers)
+
+Releases are published to npm automatically by `.github/workflows/release.yml`
+when a `v*` tag is pushed. One-time setup: add an npm automation token as the
+`NPM_TOKEN` repository secret (`gh secret set NPM_TOKEN`).
+
+To cut a release:
+
+```bash
+npm version minor        # bumps package.json, commits, creates the tag vX.Y.Z
+git push --follow-tags   # pushes the commit + tag; CI builds, tests, publishes
+```
+
+The workflow checks the tag matches `package.json`, runs the tests, and publishes
+with npm provenance. Once published, consumers update with:
+
+```bash
+npx -y genlayer-docs-mcp@latest      # always newest
+npm update -g genlayer-docs-mcp      # if installed globally
+```
+
+Remote (Vercel) users need no action — the hosted endpoint auto-deploys from
+`main`; clients pick up changes on reconnect.
