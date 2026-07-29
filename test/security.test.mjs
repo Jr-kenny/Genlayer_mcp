@@ -7,7 +7,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
   HttpAuthenticationError,
-  authenticateHttpTenant
+  authenticateHttpTenant,
+  resolveOptionalHttpTenant
 } from "../dist/httpAuth.js";
 import { WorkflowSessionStore } from "../dist/genlayerWorkflowSessions.js";
 import { createDocsServer } from "../dist/index.js";
@@ -21,6 +22,7 @@ const AUTH_CONFIG = JSON.stringify({
 });
 
 test("HTTP tenant authentication requires a configured valid bearer token", () => {
+  assert.equal(resolveOptionalHttpTenant(undefined, undefined), undefined);
   assert.equal(authenticateHttpTenant(`Bearer ${TOKEN_A}`, AUTH_CONFIG), "tenant-a");
   assert.throws(
     () => authenticateHttpTenant(undefined, AUTH_CONFIG),
@@ -43,7 +45,7 @@ test("HTTP tenant authentication requires a configured valid bearer token", () =
   );
 });
 
-test("Vercel MCP endpoint rejects unauthenticated requests and accepts a configured tenant", async () => {
+test("Vercel MCP endpoint serves anonymous stateless tools and authenticated tenant sessions", async () => {
   const previous = process.env.GENSKILL_MCP_TENANT_TOKENS;
   process.env.GENSKILL_MCP_TENANT_TOKENS = AUTH_CONFIG;
   const requestBody = JSON.stringify({
@@ -58,7 +60,7 @@ test("Vercel MCP endpoint rejects unauthenticated requests and accepts a configu
   });
 
   try {
-    const unauthenticated = await vercelPost(new Request("http://localhost/mcp", {
+    const anonymous = await vercelPost(new Request("http://localhost/mcp", {
       method: "POST",
       headers: {
         accept: "application/json, text/event-stream",
@@ -66,8 +68,12 @@ test("Vercel MCP endpoint rejects unauthenticated requests and accepts a configu
       },
       body: requestBody
     }));
-    assert.equal(unauthenticated.status, 401);
-    assert.match(unauthenticated.headers.get("www-authenticate") ?? "", /^Bearer /);
+    assert.equal(anonymous.status, 200);
+    assert.equal((await anonymous.json()).result.serverInfo.name, "genskill-mcp");
+
+    const anonymousTools = await callVercelToolsList();
+    assert.equal(anonymousTools.includes("genlayer_load_contract_artifact"), false);
+    assert.equal(anonymousTools.includes("genlayer_list_workflow_sessions"), false);
 
     const authenticated = await vercelPost(new Request("http://localhost/mcp", {
       method: "POST",
@@ -80,6 +86,10 @@ test("Vercel MCP endpoint rejects unauthenticated requests and accepts a configu
     }));
     assert.equal(authenticated.status, 200);
     assert.equal((await authenticated.json()).result.serverInfo.name, "genskill-mcp");
+
+    const tenantTools = await callVercelToolsList(TOKEN_A);
+    assert.equal(tenantTools.includes("genlayer_load_contract_artifact"), false);
+    assert.equal(tenantTools.includes("genlayer_list_workflow_sessions"), true);
   } finally {
     if (previous === undefined) {
       delete process.env.GENSKILL_MCP_TENANT_TOKENS;
@@ -88,6 +98,21 @@ test("Vercel MCP endpoint rejects unauthenticated requests and accepts a configu
     }
   }
 });
+
+async function callVercelToolsList(token) {
+  const response = await vercelPost(new Request("http://localhost/mcp", {
+    method: "POST",
+    headers: {
+      accept: "application/json, text/event-stream",
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} })
+  }));
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  return payload.result.tools.map((tool) => tool.name);
+}
 
 test("workflow sessions are isolated by authenticated tenant", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "genskill-session-test-"));

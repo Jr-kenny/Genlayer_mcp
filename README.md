@@ -213,17 +213,19 @@ Substitute that `node .../dist/cli.js` command in any MCP client config for sour
 
 ## Quickstart for remote MCP clients
 
-For remote MCP clients, run the HTTP entrypoint behind bearer authentication.
+Remote MCP clients can use the public HTTP endpoint without an account. Anonymous clients receive the stateless documentation, authoring, planning, and protocol tools. Persisted workflow sessions require an optional tenant bearer token.
 
 This is not Claude-specific. It is the deployed transport for any client that can connect to remote MCP servers over Streamable HTTP, including chat-style AI apps where that capability is available.
 
-1. Configure tenant credentials as a JSON object. Each key is a stable tenant ID and each value is a random bearer token containing at least 32 characters:
+1. Deploy this repository to Vercel. No authentication configuration is required for public stateless access.
+
+2. To enable private workflow sessions for known tenants, configure credentials as a JSON object. Each key is a stable tenant ID and each value is a random bearer token containing at least 32 characters:
 
    ```bash
    GENSKILL_MCP_TENANT_TOKENS='{"team-a":"replace-with-a-random-32-character-token"}'
    ```
 
-2. Deploy this repository to Vercel with `GENSKILL_MCP_TENANT_TOKENS` set in the deployment environment.
+   Anonymous users never see workflow session tools or resources, even when tenant credentials are configured.
 
 3. The deployed MCP endpoint is:
 
@@ -237,7 +239,7 @@ This is not Claude-specific. It is the deployed transport for any client that ca
    - `GET /health` for health checks
    - `POST /mcp` for MCP Streamable HTTP requests
 
-5. Add the deployed MCP URL and its tenant bearer token in a remote MCP client as an HTTP MCP server. Every `/mcp` request must include:
+5. Add the deployed MCP URL in any remote MCP client. Known tenants can optionally send their token to unlock their isolated workflow sessions:
 
    ```text
    Authorization: Bearer replace-with-a-random-32-character-token
@@ -256,12 +258,12 @@ For local HTTP testing, run:
    ```bash
    npm install
    npm run build
-   GENSKILL_MCP_TENANT_TOKENS='{"local":"replace-with-a-random-32-character-token"}' npm run start:http
+   npm run start:http
    ```
 
 It listens on port `3000` by default. Set the `PORT` environment variable to change it.
 
-HTTP workflow sessions are stored in separate hashed directories for each authenticated tenant. Set `GENSKILL_MCP_SESSION_DIR` to choose the session root. Vercel defaults to temporary function storage, so use a durable tenant-aware backing store if sessions must survive instance recycling.
+HTTP workflow session tools are hidden from anonymous users. Authenticated sessions are stored in separate hashed directories for each tenant. Set `GENSKILL_MCP_SESSION_DIR` to choose the session root. Vercel defaults to temporary function storage, so use a durable tenant-aware backing store if sessions must survive instance recycling.
 
 Local filesystem access is available only over the stdio transport. HTTP servers don’t register `genlayer_load_contract_artifact`, and all other HTTP tools reject `contractPath`. Remote clients can provide base64-encoded `code` or a deployed contract `address`.
 
@@ -279,12 +281,12 @@ Useful checks:
 
 - `https://genskill-mcp.vercel.app/`
 - `https://genskill-mcp.vercel.app/health`
-- Authenticated `POST https://genskill-mcp.vercel.app/mcp` from an MCP client
+- `POST https://genskill-mcp.vercel.app/mcp` from an anonymous or authenticated MCP client
 
 Notes:
 
 - `/mcp` is routed to the Vercel function at `/api/mcp.mjs`.
-- `/mcp` fails closed with `503` when tenant credentials aren’t configured and returns `401` for missing or invalid bearer tokens.
+- Anonymous `/mcp` requests expose only stateless tools. A supplied bearer token must be valid, and invalid tokens return `401`.
 - The Vercel endpoint uses the MCP SDK Web-standard Streamable HTTP transport in stateless mode.
 - POST requests return JSON responses where possible, which is friendlier for serverless hosting than holding long SSE streams open.
 - If the docs update while the service is already deployed, call `genlayer_refresh_docs` from an MCP client or redeploy the project.

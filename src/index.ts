@@ -42,11 +42,13 @@ const rpcService = new GenlayerRpcService();
 
 export interface DocsServerOptions {
   allowLocalFileAccess?: boolean;
+  enableWorkflowSessions?: boolean;
   workflowSessionStore?: WorkflowSessionStore;
 }
 
 export function createDocsServer(options: DocsServerOptions = {}): McpServer {
   const allowLocalFileAccess = options.allowLocalFileAccess ?? false;
+  const enableWorkflowSessions = options.enableWorkflowSessions ?? false;
   const workflowSessions = options.workflowSessionStore ?? new WorkflowSessionStore();
   const server = new McpServer(
     {
@@ -63,6 +65,7 @@ export function createDocsServer(options: DocsServerOptions = {}): McpServer {
   );
   registerDocsToolsAndResources(server, {
     allowLocalFileAccess,
+    enableWorkflowSessions,
     workflowSessions
   });
   return server;
@@ -73,11 +76,13 @@ function registerDocsToolsAndResources(
   server: McpServer,
   context: {
     allowLocalFileAccess: boolean;
+    enableWorkflowSessions: boolean;
     workflowSessions: WorkflowSessionStore;
   }
 ): void {
-  const { allowLocalFileAccess, workflowSessions } = context;
+  const { allowLocalFileAccess, enableWorkflowSessions, workflowSessions } = context;
   registerAuthoring(server);
+  if (enableWorkflowSessions) {
   server.registerTool(
     "genlayer_start_workflow_session",
     {
@@ -283,6 +288,8 @@ function registerDocsToolsAndResources(
       };
     }
   );
+
+  }
 
   server.registerTool(
     "genlayer_autopilot_brief",
@@ -1913,6 +1920,7 @@ function registerDocsToolsAndResources(
     }
   );
 
+  if (enableWorkflowSessions) {
   server.registerResource(
     "genlayer-workflow-sessions",
     "genlayer://workflow/sessions",
@@ -1973,6 +1981,7 @@ function registerDocsToolsAndResources(
       };
     }
   );
+  }
 
   const transactionTemplate = new ResourceTemplate("genlayer://protocol/transaction/{txId}", {
     list: undefined,
@@ -2425,7 +2434,10 @@ export async function startServer(): Promise<void> {
     return;
   }
 
-  const server = createDocsServer({ allowLocalFileAccess: true });
+  const server = createDocsServer({
+    allowLocalFileAccess: true,
+    enableWorkflowSessions: true
+  });
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

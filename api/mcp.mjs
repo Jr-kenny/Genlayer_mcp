@@ -9,7 +9,7 @@ const { createDocsServer } = docsModule;
 const { WorkflowSessionStore } = sessionModule;
 const {
   HttpAuthenticationError,
-  authenticateHttpTenant,
+  resolveOptionalHttpTenant,
   readTenantTokenConfiguration
 } = authModule;
 
@@ -41,7 +41,7 @@ export async function DELETE(request) {
 
 async function handleMcpRequest(request) {
   try {
-    const tenantId = authenticateHttpTenant(
+    const tenantId = resolveOptionalHttpTenant(
       request.headers.get("authorization") ?? undefined,
       readTenantTokenConfiguration()
     );
@@ -49,7 +49,10 @@ async function handleMcpRequest(request) {
       ?? path.join(os.tmpdir(), "genskill-mcp-workflow-sessions");
     const server = createDocsServer({
       allowLocalFileAccess: false,
-      workflowSessionStore: new WorkflowSessionStore(sessionRoot, tenantId)
+      enableWorkflowSessions: Boolean(tenantId),
+      ...(tenantId
+        ? { workflowSessionStore: new WorkflowSessionStore(sessionRoot, tenantId) }
+        : {})
     });
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,

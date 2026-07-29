@@ -6,7 +6,7 @@ import { createDocsServer } from "./index.js";
 import { WorkflowSessionStore } from "./genlayerWorkflowSessions.js";
 import {
   HttpAuthenticationError,
-  authenticateHttpTenant,
+  resolveOptionalHttpTenant,
   readTenantTokenConfiguration
 } from "./httpAuth.js";
 
@@ -49,7 +49,7 @@ export async function startHttpServer(): Promise<void> {
         return;
       }
 
-      const tenantId = authenticateHttpTenant(
+      const tenantId = resolveOptionalHttpTenant(
         req.headers.authorization,
         readTenantTokenConfiguration()
       );
@@ -62,7 +62,10 @@ export async function startHttpServer(): Promise<void> {
         ?? path.join(process.cwd(), ".cache", "genlayer-workflow-sessions");
       const mcpServer = createDocsServer({
         allowLocalFileAccess: false,
-        workflowSessionStore: new WorkflowSessionStore(sessionRoot, tenantId)
+        enableWorkflowSessions: Boolean(tenantId),
+        ...(tenantId
+          ? { workflowSessionStore: new WorkflowSessionStore(sessionRoot, tenantId) }
+          : {})
       });
       const transport = new StreamableHTTPServerTransport();
 

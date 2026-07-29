@@ -31,6 +31,17 @@ export function authenticateHttpTenant(
   throw new HttpAuthenticationError("Invalid bearer token.", 401);
 }
 
+export function resolveOptionalHttpTenant(
+  authorization: string | undefined,
+  serializedTenantTokens: string | undefined
+): string | undefined {
+  if (!authorization?.trim()) {
+    return undefined;
+  }
+
+  return authenticateHttpTenant(authorization, serializedTenantTokens);
+}
+
 export function readTenantTokenConfiguration(env: NodeJS.ProcessEnv = process.env): string | undefined {
   return env.GENSKILL_MCP_TENANT_TOKENS ?? env.GENLAYER_MCP_TENANT_TOKENS;
 }
