@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import http, { IncomingMessage, ServerResponse } from "node:http";
+import path from "node:path";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createDocsServer } from "./index.js";
+import { WorkflowSessionStore } from "./genlayerWorkflowSessions.js";
+import {
+  HttpAuthenticationError,
+  authenticateHttpTenant,
+  readTenantTokenConfiguration
+} from "./httpAuth.js";
 
 const DEFAULT_PORT = 3000;
 const port = readPort(process.env.PORT) ?? DEFAULT_PORT;
@@ -42,12 +49,21 @@ export async function startHttpServer(): Promise<void> {
         return;
       }
 
+      const tenantId = authenticateHttpTenant(
+        req.headers.authorization,
+        readTenantTokenConfiguration()
+      );
       const parsedBody = shouldParseBody(req.method) ? await readJsonBody(req, res) : undefined;
       if (res.writableEnded) {
         return;
       }
 
-      const mcpServer = createDocsServer();
+      const sessionRoot = process.env.GENSKILL_MCP_SESSION_DIR
+        ?? path.join(process.cwd(), ".cache", "genlayer-workflow-sessions");
+      const mcpServer = createDocsServer({
+        allowLocalFileAccess: false,
+        workflowSessionStore: new WorkflowSessionStore(sessionRoot, tenantId)
+      });
       const transport = new StreamableHTTPServerTransport();
 
       await mcpServer.connect(transport as Parameters<typeof mcpServer.connect>[0]);
@@ -58,6 +74,20 @@ export async function startHttpServer(): Promise<void> {
         void mcpServer.close();
       });
     } catch (error) {
+      if (error instanceof HttpAuthenticationError && !res.headersSent) {
+        if (error.statusCode === 401) {
+          res.setHeader("WWW-Authenticate", 'Bearer realm="genskill-mcp"');
+        }
+        writeJson(res, error.statusCode, {
+          jsonrpc: "2.0",
+          error: {
+            code: error.statusCode === 401 ? -32001 : -32002,
+            message: error.message
+          },
+          id: null
+        });
+        return;
+      }
       const message = error instanceof Error ? error.message : String(error);
       if (!res.headersSent) {
         writeJson(res, 500, {

@@ -31,8 +31,13 @@ export interface WorkflowSession {
 export class WorkflowSessionStore {
   private readonly baseDir: string;
 
-  constructor(baseDir = path.join(process.cwd(), ".cache", "genlayer-workflow-sessions")) {
-    this.baseDir = baseDir;
+  constructor(
+    baseDir = path.join(process.cwd(), ".cache", "genlayer-workflow-sessions"),
+    tenantId?: string
+  ) {
+    this.baseDir = tenantId
+      ? path.join(baseDir, tenantDirectoryName(tenantId))
+      : baseDir;
   }
 
   async create(input: {
@@ -122,6 +127,9 @@ export class WorkflowSessionStore {
   }
 
   private filePath(id: string): string {
+    if (!isWorkflowSessionId(id)) {
+      throw new Error("Invalid workflow session id.");
+    }
     return path.join(this.baseDir, `${id}.json`);
   }
 }
@@ -174,4 +182,12 @@ function countSteps(phases: WorkflowSessionPhase[]): number {
 
 function countCompletedSteps(phases: WorkflowSessionPhase[]): number {
   return phases.reduce((sum, phase) => sum + phase.steps.filter((step) => step.status === "completed").length, 0);
+}
+
+function isWorkflowSessionId(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
+function tenantDirectoryName(tenantId: string): string {
+  return crypto.createHash("sha256").update(tenantId).digest("hex");
 }

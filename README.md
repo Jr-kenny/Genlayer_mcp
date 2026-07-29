@@ -213,25 +213,35 @@ Substitute that `node .../dist/cli.js` command in any MCP client config for sour
 
 ## Quickstart for remote MCP clients
 
-For remote MCP clients, run the HTTP entrypoint and deploy it as a public web service.
+For remote MCP clients, run the HTTP entrypoint behind bearer authentication.
 
 This is not Claude-specific. It is the deployed transport for any client that can connect to remote MCP servers over Streamable HTTP, including chat-style AI apps where that capability is available.
 
-1. Deploy this repository to Vercel.
+1. Configure tenant credentials as a JSON object. Each key is a stable tenant ID and each value is a random bearer token containing at least 32 characters:
 
-2. The deployed MCP endpoint is:
+   ```bash
+   GENSKILL_MCP_TENANT_TOKENS='{"team-a":"replace-with-a-random-32-character-token"}'
+   ```
+
+2. Deploy this repository to Vercel with `GENSKILL_MCP_TENANT_TOKENS` set in the deployment environment.
+
+3. The deployed MCP endpoint is:
 
    ```text
    https://genskill-mcp.vercel.app/mcp
    ```
 
-3. The deployed service also exposes:
+4. The deployed service also exposes:
 
    - `GET /` for a small server info response
    - `GET /health` for health checks
    - `POST /mcp` for MCP Streamable HTTP requests
 
-4. Add the deployed MCP URL in a remote MCP client as an HTTP MCP server.
+5. Add the deployed MCP URL and its tenant bearer token in a remote MCP client as an HTTP MCP server. Every `/mcp` request must include:
+
+   ```text
+   Authorization: Bearer replace-with-a-random-32-character-token
+   ```
 
 Use:
 
@@ -246,10 +256,14 @@ For local HTTP testing, run:
    ```bash
    npm install
    npm run build
-   npm run start:http
+   GENSKILL_MCP_TENANT_TOKENS='{"local":"replace-with-a-random-32-character-token"}' npm run start:http
    ```
 
 It listens on port `3000` by default. Set the `PORT` environment variable to change it.
+
+HTTP workflow sessions are stored in separate hashed directories for each authenticated tenant. Set `GENSKILL_MCP_SESSION_DIR` to choose the session root. Vercel defaults to temporary function storage, so use a durable tenant-aware backing store if sessions must survive instance recycling.
+
+Local filesystem access is available only over the stdio transport. HTTP servers don’t register `genlayer_load_contract_artifact`, and all other HTTP tools reject `contractPath`. Remote clients can provide base64-encoded `code` or a deployed contract `address`.
 
 ## Vercel deployment
 
@@ -265,11 +279,12 @@ Useful checks:
 
 - `https://genskill-mcp.vercel.app/`
 - `https://genskill-mcp.vercel.app/health`
-- `POST https://genskill-mcp.vercel.app/mcp` from an MCP client
+- Authenticated `POST https://genskill-mcp.vercel.app/mcp` from an MCP client
 
 Notes:
 
 - `/mcp` is routed to the Vercel function at `/api/mcp.mjs`.
+- `/mcp` fails closed with `503` when tenant credentials aren’t configured and returns `401` for missing or invalid bearer tokens.
 - The Vercel endpoint uses the MCP SDK Web-standard Streamable HTTP transport in stateless mode.
 - POST requests return JSON responses where possible, which is friendlier for serverless hosting than holding long SSE streams open.
 - If the docs update while the service is already deployed, call `genlayer_refresh_docs` from an MCP client or redeploy the project.
@@ -308,7 +323,7 @@ The autopilot and capability surfaces are capability-aware: they should prefer o
    Generates a single operator-grade brief with endpoint capabilities, contract context, workflow plans, handoff steps, and relevant docs.
 
 7. `genlayer_load_contract_artifact`
-   Loads a local contract artifact or bytecode file and returns base64 plus file metadata.
+   Loads a local contract artifact or bytecode file and returns base64 plus file metadata. This tool is exposed only over the local stdio transport.
 
 8. `genlayer_probe_endpoint_capabilities`
    Probes which HTTP and RPC surfaces are actually exposed on the configured GenLayer deployment.
@@ -426,10 +441,10 @@ The autopilot and capability surfaces are capability-aware: they should prefer o
    Documented GenLayer network presets, RPC URLs, and chain IDs.
 
 2. `genlayer://workflow/sessions`
-   List of persisted workflow sessions.
+   List of persisted workflow sessions. HTTP clients see only their authenticated tenant’s sessions.
 
 3. `genlayer://workflow/session/{id}`
-   Persisted workflow session with step completion state.
+   Persisted workflow session with step completion state, scoped to the authenticated HTTP tenant.
 
 4. `genlayer://workflow/autopilot`
    Single operator-grade brief for the configured endpoint and current contract context.

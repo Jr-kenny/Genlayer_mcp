@@ -39,9 +39,15 @@ import { isCanonicalEnvelope, makeCanonicalResponse, textEnvelope } from "./mcpR
 
 const service = new GenlayerDocsService();
 const rpcService = new GenlayerRpcService();
-const workflowSessions = new WorkflowSessionStore();
 
-export function createDocsServer(): McpServer {
+export interface DocsServerOptions {
+  allowLocalFileAccess?: boolean;
+  workflowSessionStore?: WorkflowSessionStore;
+}
+
+export function createDocsServer(options: DocsServerOptions = {}): McpServer {
+  const allowLocalFileAccess = options.allowLocalFileAccess ?? false;
+  const workflowSessions = options.workflowSessionStore ?? new WorkflowSessionStore();
   const server = new McpServer(
     {
       name: "genskill-mcp",
@@ -55,12 +61,22 @@ export function createDocsServer(): McpServer {
       }
     }
   );
-  registerDocsToolsAndResources(server);
+  registerDocsToolsAndResources(server, {
+    allowLocalFileAccess,
+    workflowSessions
+  });
   return server;
 }
 
 
-function registerDocsToolsAndResources(server: McpServer): void {
+function registerDocsToolsAndResources(
+  server: McpServer,
+  context: {
+    allowLocalFileAccess: boolean;
+    workflowSessions: WorkflowSessionStore;
+  }
+): void {
+  const { allowLocalFileAccess, workflowSessions } = context;
   registerAuthoring(server);
   server.registerTool(
     "genlayer_start_workflow_session",
@@ -81,7 +97,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath, goal, notes }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath, allowLocalFileAccess).catch((error) => {
         return unsupportedContractRpcEnvelope("workflow_session_start", error);
       });
       if (isCanonicalEnvelope(schema)) {
@@ -288,6 +304,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
     async ({ address, code, contractPath, goal }) => {
       const brief = await buildAutopilotBrief({
         goal,
+        allowLocalFileAccess,
         ...(address ? { address } : {}),
         ...(code ? { code } : {}),
         ...(contractPath ? { contractPath } : {})
@@ -320,32 +337,34 @@ function registerDocsToolsAndResources(server: McpServer): void {
     }
   );
 
-  server.registerTool(
-    "genlayer_load_contract_artifact",
-    {
-      title: "Load Contract Artifact",
-      description: "Load a local contract artifact or bytecode file and return base64 plus file metadata for downstream GenLayer workflows.",
-      inputSchema: {
-        contractPath: z.string().min(1).describe("Local path to a compiled contract artifact or binary/code file.")
-      },
-      annotations: {
+  if (allowLocalFileAccess) {
+    server.registerTool(
+      "genlayer_load_contract_artifact",
+      {
         title: "Load Contract Artifact",
-        readOnlyHint: true,
-        idempotentHint: true
+        description: "Load a local contract artifact or bytecode file and return base64 plus file metadata for downstream GenLayer workflows.",
+        inputSchema: {
+          contractPath: z.string().min(1).describe("Local path to a compiled contract artifact or binary/code file.")
+        },
+        annotations: {
+          title: "Load Contract Artifact",
+          readOnlyHint: true,
+          idempotentHint: true
+        }
+      },
+      async ({ contractPath }) => {
+        const artifact = await loadContractArtifact(contractPath);
+        return {
+          content: [
+            {
+              type: "text",
+              text: formatJson(artifact)
+            }
+          ]
+        };
       }
-    },
-    async ({ contractPath }) => {
-      const artifact = await loadContractArtifact(contractPath);
-      return {
-        content: [
-          {
-            type: "text",
-            text: formatJson(artifact)
-          }
-        ]
-      };
-    }
-  );
+    );
+  }
 
   server.registerTool(
     "genlayer_probe_endpoint_capabilities",
@@ -402,7 +421,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath, goal }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath, allowLocalFileAccess).catch((error) => {
         return unsupportedContractRpcEnvelope("agent_handoff", error);
       });
       if (isCanonicalEnvelope(schema)) {
@@ -463,7 +482,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath, allowLocalFileAccess).catch((error) => {
         return unsupportedContractRpcEnvelope("contract_workflow_plan", error);
       });
       if (isCanonicalEnvelope(schema)) {
@@ -526,7 +545,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ action, address, code, contractPath, methodName, args, from, value, statusTarget }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath, allowLocalFileAccess).catch((error) => {
         return unsupportedContractRpcEnvelope("contract_action_plan", error);
       });
       if (isCanonicalEnvelope(schema)) {
@@ -625,7 +644,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath, allowLocalFileAccess).catch((error) => {
         return unsupportedContractRpcEnvelope("typescript_workflow", error);
       });
       if (isCanonicalEnvelope(schema)) {
@@ -669,7 +688,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
       }
     },
     async ({ address, code, contractPath }) => {
-      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath).catch((error) => {
+      const schema = await resolveContractSchemaFromAnySource(address, code, contractPath, allowLocalFileAccess).catch((error) => {
         return unsupportedContractRpcEnvelope("contract_playbook", error);
       });
       if (isCanonicalEnvelope(schema)) {
@@ -1881,7 +1900,7 @@ function registerDocsToolsAndResources(server: McpServer): void {
       mimeType: "application/json"
     },
     async () => {
-      const brief = await buildAutopilotBrief({ goal: "onboard" });
+      const brief = await buildAutopilotBrief({ goal: "onboard", allowLocalFileAccess });
       return {
         contents: [
           {
@@ -2406,7 +2425,7 @@ export async function startServer(): Promise<void> {
     return;
   }
 
-  const server = createDocsServer();
+  const server = createDocsServer({ allowLocalFileAccess: true });
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
@@ -2425,7 +2444,16 @@ async function resolveContractSchema(address?: string, code?: string): Promise<u
   throw new Error("Provide either address or code.");
 }
 
-async function resolveContractSchemaFromAnySource(address?: string, code?: string, contractPath?: string): Promise<unknown> {
+async function resolveContractSchemaFromAnySource(
+  address?: string,
+  code?: string,
+  contractPath?: string,
+  allowLocalFileAccess = true
+): Promise<unknown> {
+  if (contractPath && !code && !address && !allowLocalFileAccess) {
+    throw new Error("Local contract paths are disabled for HTTP clients. Provide base64-encoded code or a deployed address.");
+  }
+
   assertContractRpcSupported("resolve contract schema from endpoint");
   if (code || address) {
     return resolveContractSchema(address, code);
@@ -2592,6 +2620,7 @@ function buildAgentHandoff(input: {
 
 async function buildAutopilotBrief(input: {
   address?: string;
+  allowLocalFileAccess?: boolean;
   code?: string;
   contractPath?: string;
   goal: "deploy" | "read" | "write" | "debug" | "onboard";
@@ -2607,7 +2636,12 @@ async function buildAutopilotBrief(input: {
   let contractRpcIssue: ReturnType<typeof makeCanonicalResponse> | undefined;
 
   if (input.address || input.code || input.contractPath) {
-    const schema = await resolveContractSchemaFromAnySource(input.address, input.code, input.contractPath).catch((error) => {
+    const schema = await resolveContractSchemaFromAnySource(
+      input.address,
+      input.code,
+      input.contractPath,
+      input.allowLocalFileAccess ?? true
+    ).catch((error) => {
       return unsupportedContractRpcEnvelope("autopilot_brief_contract_context", error);
     });
 
